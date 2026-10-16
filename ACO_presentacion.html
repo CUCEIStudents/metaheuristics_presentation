@@ -162,9 +162,37 @@ svg text{font-family:var(--body)}
   <div class="center">
     <div class="num">01</div>
     <h1>Inspiración<br>y modelado</h1>
-    <div class="topics"><span class="pill">Explosión combinatoria</span><span class="pill">Estigmergia</span><span class="pill">Doble puente</span><span class="pill">El problema como grafo</span></div>
+    <div class="topics"><span class="pill">Antecedentes</span><span class="pill">Explosión combinatoria</span><span class="pill">Estigmergia</span><span class="pill">Doble puente</span><span class="pill">El problema como grafo</span></div>
   </div>
   <aside class="notes">Empieza la primera parte: de dónde sale la idea y cómo se convierte en un modelo que una computadora puede usar.</aside>
+</section>
+
+<!-- Antecedentes e inspiración biológica -->
+<section class="slide" data-part="1">
+  <p class="kicker">Antecedentes · Inspiración biológica</p>
+  <h2>De las hormigas reales al algoritmo</h2>
+  <div class="cols" style="gap:44px">
+    <div class="card" style="border-top:4px solid var(--amber)">
+      <h3 class="amber">El enigma en la naturaleza</h3>
+      <ul class="small" style="margin-top:16px">
+        <li class="step" data-at="1">Las hormigas son insectos <b>prácticamente ciegos</b> y con capacidades cognitivas individuales sumamente simples.</li>
+        <li class="step" data-at="2">No existe un líder, mapa global ni coordinación centralizada que les indique qué camino tomar.</li>
+        <li class="step" data-at="3">A pesar de esto, la colonia logra trazar y mantener las <b>rutas más cortas</b> entre el nido y los recursos de alimento.</li>
+        <li class="step" data-at="4">Es un fenómeno de <b>inteligencia de enjambre</b> y autoorganización: comportamientos colectivos complejos surgen de reglas individuales muy básicas.</li>
+      </ul>
+    </div>
+    <div class="card" style="border-top:4px solid var(--teal)">
+      <h3 class="teal">La propuesta de Dorigo (1991–1992)</h3>
+      <ul class="small" style="margin-top:16px">
+        <li class="step" data-at="1">El investigador italiano <b>Marco Dorigo</b>, junto a <b>Alberto Colorni</b> y <b>Vittorio Maniezzo</b>, observaron este mecanismo biológico.</li>
+        <li class="step" data-at="2"><b>La inspiración:</b> Si agentes ciegos cooperan mediante rastros para optimizar trayectos, ¿podemos diseñar agentes de software similares que resuelvan problemas discretos y combinatorios?</li>
+        <li class="step" data-at="3">En 1991-1992 nace <b>Ant System (AS)</b>, propuesto formalmente en la tesis doctoral de Dorigo.</li>
+        <li class="step" data-at="4">Este fue el punto de partida para la metaheurística <b>Ant Colony Optimization (ACO)</b>, extendida luego a decenas de problemas de optimización.</li>
+      </ul>
+    </div>
+  </div>
+  <p class="cite">Dorigo, M. (1992), <i>Optimization, Learning and Natural Algorithms</i> (Tesis doctoral, Politecnico di Milano); Colorni, Dorigo y Maniezzo (1991).</p>
+  <aside class="notes">Esta diapositiva da el contexto histórico e intuitivo: ¿de dónde surge todo esto? Las hormigas reales son casi ciegas y carecen de un cerebro complejo o de un líder que planifique rutas. A pesar de eso, son capaces de encontrar los caminos más cortos entre su hormiguero y los recursos. A inicios de los años 90, Marco Dorigo, junto con Alberto Colorni y Vittorio Maniezzo en Milán, se inspiraron en este fenómeno de inteligencia colectiva y se preguntaron si podíamos usar colonias artificiales para resolver problemas de optimización. Así nació Ant System y la metaheurística ACO.</aside>
 </section>
 
 <!-- 4. Explosión combinatoria -->
@@ -208,7 +236,7 @@ svg text{font-family:var(--body)}
     </div>
     <div>
       <p>Las hormigas dejan en el suelo una sustancia química, la <b class="amber">feromona</b>, y tienden a seguir los caminos donde hay más.</p>
-      <p class="step" data-at="1"><b>Estigmergia</b> (Grassé, 1959): comunicación <b>indirecta</b> a través del entorno. Una hormiga modifica el ambiente y eso cambia lo que hacen las demás.</p>
+      <p class="step" data-at="1">Es un fenómeno que implica <b class="amber">estigmergia</b> (Grassé, 1959): comunicación <b>indirecta</b> a través del entorno. Una hormiga modifica el ambiente y eso cambia lo que hacen las demás.</p>
       <p class="step small muted" data-at="2">La información es <b>local</b>: solo la percibe quien pasa por ese lugar.</p>
     </div>
   </div>
@@ -224,7 +252,7 @@ svg text{font-family:var(--body)}
       <div class="frame"><canvas class="cv" data-w="860" data-h="420"></canvas></div>
       <div class="btns" style="margin-top:14px;align-items:center">
         <button class="b reset">Repetir experimento</button>
-        <button class="b pri many">Correr 50 veces</button>
+        <button class="b pri many">Ejecutar 50 veces</button>
         <span class="stat tally" style="margin-left:10px"></span>
       </div>
     </div>
@@ -232,8 +260,8 @@ svg text{font-family:var(--body)}
       <p>El nido se conecta con la comida por <b>dos puentes</b>, uno mucho más largo que el otro.</p>
       <ul class="small">
         <li class="step" data-at="1">Las hormigas que eligen el corto <b>regresan primero</b>, así que ese puente recibe feromona <b>antes</b>.</li>
-        <li class="step" data-at="2">Más feromona atrae más hormigas, que dejan más feromona: <b>retroalimentación positiva</b>.</li>
-        <li class="step" data-at="3">La colonia encuentra el <b class="amber">camino más corto</b> sin que ninguna hormiga compare distancias.</li>
+        <li class="step" data-at="2">Más feromona atrae más hormigas, que dejan más feromona: una reacción <b class="amber">autocatalítica</b> con <b class="amber">retroalimentación positiva</b>.</li>
+        <li class="step" data-at="3">La colonia encuentra el <b>camino más corto</b> sin que ninguna hormiga compare distancias.</li>
         <li class="step muted" data-at="4">Con dos puentes iguales, la colonia también termina usando uno solo, pero cuál gana es cuestión de azar (Deneubourg et al., 1990).</li>
       </ul>
     </div>
@@ -251,9 +279,9 @@ svg text{font-family:var(--body)}
     <tr class="step" data-at="1"><td><b>Feromona</b></td><td>Sustancia química en el suelo</td><td>Un número <b class="amber">τ<sub>ij</sub></b> guardado en cada arista del grafo</td></tr>
     <tr class="step" data-at="2"><td><b>Entorno</b></td><td>Espacio continuo</td><td>Un <b>grafo</b> que representa el problema</td></tr>
     <tr class="step" data-at="3"><td><b>Memoria</b></td><td>No recuerda por dónde pasó</td><td>Lleva la lista de nodos visitados para armar soluciones válidas</td></tr>
-    <tr class="step" data-at="4"><td><b>Información extra</b></td><td>Solo feromona</td><td>También usa una heurística del problema, <b class="teal">η<sub>ij</sub></b> (por ejemplo, 1/distancia)</td></tr>
+    <tr class="step" data-at="4"><td><b>Información extra</b></td><td>Solo feromona</td><td>Usa una heurística del problema, <b class="teal">η<sub>ij</sub></b> (por ejemplo, 1/distancia)</td></tr>
     <tr class="step" data-at="5"><td><b>Depósito</b></td><td>Mientras camina</td><td>Al terminar, y según qué tan <b>buena</b> fue su solución</td></tr>
-    <tr class="step" data-at="6"><td><b>Tiempo</b></td><td>Continuo</td><td>Por iteraciones</td></tr>
+    <tr class="step" data-at="6"><td><b>Tiempo</b></td><td>Continuo</td><td>Por iteraciones (Discreto)</td></tr>
   </table>
   <p class="cite">Dorigo, Maniezzo y Colorni (1996), IEEE Transactions on Systems, Man, and Cybernetics B 26(1), 29–41.</p>
   <aside class="notes">Las hormigas artificiales no son una copia exacta: toman la idea de la feromona y le agregan cosas que en computación sí se pueden hacer, como recordar el camino o saber la distancia entre ciudades.</aside>
@@ -269,7 +297,7 @@ svg text{font-family:var(--body)}
       <ul class="small">
         <li class="step" data-at="1">Cada ciudad es un <b>vértice</b> y cada conexión, una <b>arista</b>.</li>
         <li class="step" data-at="2">Cada arista guarda dos números: la <b class="amber">feromona τ<sub>ij</sub></b> (lo que aprende la colonia) y la <b class="teal">heurística η<sub>ij</sub> = 1/d<sub>ij</sub></b> (qué tan cerca está).</li>
-        <li class="step" data-at="3">La hormiga empieza en una ciudad al azar y elige la siguiente entre las <b>no visitadas</b> (punteadas), con una probabilidad que depende de τ y η.</li>
+        <li class="step" data-at="3">La hormiga empieza en una ciudad al azar y elige la siguiente entre las <b>no visitadas</b>, con una probabilidad que depende de τ y η.</li>
         <li class="step" data-at="4">Guarda en su <b>memoria</b> las ciudades visitadas, para que la ruta sea válida.</li>
       </ul>
       <div class="small muted" style="margin:14px 0 8px">Memoria de la hormiga:</div>
