@@ -1,0 +1,1422 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ant Colony Optimization</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#12100e; --surface:#1b1815; --surface2:#25211c; --line:#3a332b;
+  --text:#f2ece3; --muted:#a69d90; --faint:#6e665b;
+  --amber:#f2a93b; --teal:#45c0b0; --coral:#f0735f; --violet:#ab95f3; --green:#8fcf6a;
+  --head:'Space Grotesk','Segoe UI',system-ui,sans-serif;
+  --body:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;
+  --mono:'JetBrains Mono','Cascadia Code',Consolas,monospace;
+}
+:root[data-theme="light"]{
+  --bg:#f6f1e8; --surface:#fffcf6; --surface2:#ede5d8; --line:#d8cdbc;
+  --text:#1d1812; --muted:#62584c; --faint:#9b9080;
+  --amber:#b56d00; --teal:#127c70; --coral:#c63f2b; --violet:#6549c4; --green:#3f8a1c;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);overflow:hidden;font-family:var(--body)}
+#stage{position:absolute;left:50%;top:50%;width:1600px;height:900px;transform-origin:center center;background:var(--bg)}
+.slide{position:absolute;inset:0;padding:64px 96px 86px;opacity:0;visibility:hidden;transform:translateX(40px);
+  transition:opacity .5s ease,transform .5s ease,visibility 0s linear .5s;font-size:26px;line-height:1.45}
+.slide.active{opacity:1;visibility:visible;transform:none;transition:opacity .5s ease,transform .5s ease}
+.slide.past{transform:translateX(-40px)}
+.kicker{font:600 17px/1 var(--body);letter-spacing:.16em;text-transform:uppercase;color:var(--amber);margin:0 0 14px}
+h1,h2,h3{font-family:var(--head);margin:0;letter-spacing:-.01em;text-wrap:balance}
+h1{font-size:96px;line-height:1;font-weight:700}
+h2{font-size:50px;line-height:1.1;font-weight:600;margin-bottom:34px}
+h3{font-size:30px;font-weight:600;margin-bottom:12px}
+p{margin:0 0 18px}
+ul{margin:0;padding-left:1.1em}
+li{margin:0 0 12px}
+li::marker{color:var(--amber)}
+b,strong{font-weight:600}
+.muted{color:var(--muted)} .faint{color:var(--faint)}
+.amber{color:var(--amber)} .teal{color:var(--teal)} .coral{color:var(--coral)} .violet{color:var(--violet)} .green{color:var(--green)}
+.small{font-size:20px;line-height:1.4} .tiny{font-size:16px;line-height:1.4}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:start}
+.cols.c64{grid-template-columns:1.5fr 1fr} .cols.c46{grid-template-columns:1fr 1.5fr}
+.cols.c3{grid-template-columns:repeat(3,1fr);gap:28px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:26px 28px}
+.card h3{font-size:26px}
+.card.hl{border-color:var(--amber)}
+.pill{display:inline-block;font:500 16px/1 var(--body);padding:7px 12px;border-radius:99px;border:1px solid var(--line);color:var(--muted);margin:0 6px 6px 0}
+.tag{display:inline-block;font:600 15px/1 var(--mono);padding:5px 9px;border-radius:6px;background:var(--surface2);color:var(--muted)}
+.cite{font-size:16px;color:var(--faint);position:absolute;left:96px;bottom:92px;max-width:1100px}
+.center{display:flex;flex-direction:column;justify-content:center;height:100%}
+.step{opacity:0;transform:translateY(14px);transition:opacity .45s ease,transform .45s ease}
+.step.on{opacity:1;transform:none}
+.dim-when-on.on{opacity:.35}
+math{font-size:1.25em}
+math[display="block"]{margin:10px 0}
+.formula{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 28px;font-size:30px;display:flex;justify-content:center}
+.m-amber{color:var(--amber)} .m-teal{color:var(--teal)} .m-coral{color:var(--coral)} .m-violet{color:var(--violet)}
+table.t{border-collapse:collapse;width:100%;font-size:22px}
+table.t th{font:600 16px/1.2 var(--body);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);text-align:left;padding:10px 14px;border-bottom:2px solid var(--line)}
+table.t th.g{text-transform:none;letter-spacing:.02em}
+table.t td{padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+table.t td.num{font-family:var(--mono);text-align:right;white-space:nowrap}
+table.t tr.hl td{background:color-mix(in srgb,var(--amber) 12%,transparent)}
+canvas{display:block}
+.panel{display:flex;flex-direction:column;gap:14px}
+.ctrl{display:grid;grid-template-columns:120px 1fr 64px;align-items:center;gap:12px;font-size:19px}
+.ctrl label{color:var(--muted)}
+.ctrl output{font-family:var(--mono);font-size:18px;text-align:right}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;background:var(--surface2);outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--amber);border:3px solid var(--bg);cursor:pointer}
+input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--amber);border:3px solid var(--bg);cursor:pointer}
+button.b,select.b{font:500 18px/1 var(--body);color:var(--text);background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:11px 16px;cursor:pointer}
+button.b:hover{border-color:var(--amber)}
+button.b.pri{background:var(--amber);color:#1a1206;border-color:var(--amber)}
+.btns{display:flex;gap:10px;flex-wrap:wrap}
+.stat{font-family:var(--mono);font-size:19px;color:var(--muted)}
+.stat b{color:var(--text);font-weight:600}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:17px;color:var(--muted)}
+.legend i{display:inline-block;width:22px;height:4px;border-radius:2px;vertical-align:middle;margin-right:7px}
+.frame{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--surface)}
+/* footer */
+#foot{position:absolute;left:96px;right:96px;bottom:30px;display:flex;justify-content:space-between;font-size:16px;color:var(--faint);pointer-events:none}
+#foot .who{color:var(--muted)}
+#bar{position:absolute;left:0;bottom:0;height:5px;background:var(--amber);transition:width .4s ease}
+/* divider slides */
+.divider .num{font:700 220px/0.9 var(--head);color:transparent;-webkit-text-stroke:2px var(--amber);margin-bottom:10px}
+.divider h1{font-size:84px;margin-bottom:22px}
+.divider .who{font-size:28px;color:var(--muted)}
+.divider .who b{color:var(--text)}
+.divider .topics{margin-top:40px;display:flex;gap:10px;flex-wrap:wrap}
+.divider .topics .pill{font-size:19px;padding:9px 15px}
+.divider svg.trail{position:absolute;right:40px;top:90px;width:540px;height:540px;opacity:.9}
+/* code */
+pre.code{margin:0;font:400 19px/1.62 var(--mono);font-variant-ligatures:none;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 0;overflow:hidden;tab-size:4}
+pre.code .ln{display:block;padding:0 22px 0 18px;transition:background .3s,opacity .3s;border-left:4px solid transparent}
+pre.code .ln::before{content:attr(data-n);display:inline-block;width:30px;color:var(--faint);margin-right:14px;text-align:right;font-size:15px}
+pre.code.focus .ln{opacity:.35}
+pre.code.focus .ln.hl{opacity:1;background:color-mix(in srgb,var(--amber) 13%,transparent);border-left-color:var(--amber)}
+.tk-k{color:var(--coral)} .tk-s{color:var(--green)} .tk-c{color:var(--faint);font-style:italic} .tk-n{color:var(--violet)} .tk-f{color:var(--teal)} .tk-b{color:var(--amber)}
+/* notes / help */
+#notes{position:fixed;left:0;right:0;bottom:0;max-height:34vh;overflow:auto;background:color-mix(in srgb,var(--surface) 96%,transparent);border-top:2px solid var(--amber);
+  padding:16px 28px 20px;font-size:18px;line-height:1.5;color:var(--text);transform:translateY(105%);transition:transform .3s ease;z-index:20}
+#notes.open{transform:none}
+#notes h4{margin:0 0 6px;font:600 13px/1 var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
+#help{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 16px;font-size:14px;color:var(--muted);z-index:15;transition:opacity .6s}
+#help kbd{font-family:var(--mono);background:var(--surface2);border-radius:4px;padding:1px 6px;color:var(--text)}
+#nav{position:fixed;right:16px;bottom:14px;display:flex;gap:6px;z-index:16;opacity:.15;transition:opacity .2s}
+#nav:hover{opacity:1}
+#nav button{width:38px;height:38px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--text);font-size:18px;cursor:pointer}
+aside.notes{display:none}
+/* misc animations */
+@keyframes dash{to{stroke-dashoffset:0}}
+@keyframes flow{to{stroke-dashoffset:-40}}
+@keyframes pulse{0%,100%{opacity:.55}50%{opacity:1}}
+.draw path,.draw line{stroke-dasharray:var(--len,600);stroke-dashoffset:var(--len,600)}
+.slide.active .draw.on path,.slide.active .draw.on line{animation:dash 1.4s ease forwards}
+.flow{stroke-dasharray:10 10;animation:flow 1.2s linear infinite}
+.tl{position:relative;margin-top:80px;height:470px}
+.tl .axis{position:absolute;left:0;right:0;top:210px;height:3px;background:var(--line)}
+.tl .ev{position:absolute;width:220px;font-size:19px;line-height:1.35}
+.tl .ev .y{font:700 34px/1 var(--head);color:var(--amber);margin-bottom:6px}
+.tl .ev.up{bottom:278px} .tl .ev.dn{top:240px}
+.tl .ev::before{content:"";position:absolute;left:0;width:2px;background:var(--line)}
+.tl .ev.up::before{top:100%;height:20px} .tl .ev.dn::before{bottom:100%;height:28px}
+.tl .ev .dot{position:absolute;left:-7px;width:16px;height:16px;border-radius:50%;background:var(--amber);border:3px solid var(--bg)}
+.tl .ev.up .dot{bottom:-28px} .tl .ev.dn .dot{top:-37px}
+.big-num{font:700 76px/1 var(--head);color:var(--amber);font-variant-numeric:tabular-nums}
+.chip{display:inline-flex;align-items:center;justify-content:center;min-width:40px;height:40px;padding:0 10px;border-radius:9px;background:var(--surface2);border:1px solid var(--line);font:600 19px/1 var(--mono);margin:0 6px 6px 0;transition:all .3s}
+.chip.new{background:var(--amber);color:#1a1206;border-color:var(--amber)}
+.mono{font-family:var(--mono)}
+.ph rect{transition:stroke .3s,fill .3s}
+.ph.act rect{stroke:var(--amber);stroke-width:3;fill:color-mix(in srgb,var(--amber) 12%,var(--surface))}
+.ph.act text:first-of-type{fill:var(--amber)}
+.team div{margin:2px 0}
+input:disabled{opacity:.35}
+svg text{font-family:var(--body)}
+</style>
+</head>
+<body>
+<div id="stage">
+
+<!-- ============ 1. PORTADA ============ -->
+<section class="slide" data-part="0" data-sim="forage-bg">
+  <canvas class="bgcv" data-w="1600" data-h="900" style="position:absolute;inset:0;opacity:.85"></canvas>
+  <div style="position:relative;height:100%;display:flex;flex-direction:column;justify-content:center">
+    <p class="kicker">Sistemas Inteligentes II · Algoritmos Metaheurísticos</p>
+    <h1>Ant Colony<br>Optimization</h1>
+    <p style="font-size:34px;color:var(--muted);margin-top:22px">Optimización por colonia de hormigas</p>
+    <div style="margin-top:60px;font-size:22px;line-height:1.6">
+      <div class="team"></div>
+      <div class="muted" style="margin-top:14px">Profesor: Mtro. Erasmo Gabriel Martínez Soltero<br>Ingeniería en Computación · CUCEI · Octubre 2026</div>
+    </div>
+  </div>
+  <aside class="notes">Presentarse. El fondo es una simulación: cada punto es una hormiga y el color ámbar es la feromona que dejan cuando regresan con comida. En unos segundos se forman caminos entre el nido y la comida sin que nadie los dirija. Eso es lo que vamos a explicar.</aside>
+</section>
+
+<!-- ============ PARTE 1 ============ -->
+<section class="slide divider" data-part="1">
+  <svg class="trail" viewBox="0 0 620 620"><path d="M40 560 C 160 420, 120 300, 260 260 S 420 120, 580 60" fill="none" stroke="var(--amber)" stroke-width="10" stroke-linecap="round" opacity=".35"/><path d="M40 560 C 160 420, 120 300, 260 260 S 420 120, 580 60" fill="none" stroke="var(--amber)" stroke-width="3" class="flow"/><circle cx="40" cy="560" r="22" fill="var(--surface2)" stroke="var(--muted)"/><circle cx="580" cy="60" r="22" fill="var(--amber)" opacity=".8"/></svg>
+  <div class="center">
+    <div class="num">01</div>
+    <h1>Inspiración<br>y modelado</h1>
+    <div class="topics"><span class="pill">Explosión combinatoria</span><span class="pill">Estigmergia</span><span class="pill">Doble puente</span><span class="pill">El problema como grafo</span></div>
+  </div>
+  <aside class="notes">Empieza la primera parte: de dónde sale la idea y cómo se convierte en un modelo que una computadora puede usar.</aside>
+</section>
+
+<!-- 4. Explosión combinatoria -->
+<section class="slide" data-part="1" data-sim="explosion">
+  <p class="kicker">El problema</p>
+  <h2>¿Por qué no probar todas las rutas?</h2>
+  <div class="cols c46" style="gap:64px">
+    <div>
+      <div class="frame"><canvas class="cv" data-w="560" data-h="430"></canvas></div>
+      <p class="small" style="margin-top:18px">Por eso se usan <b class="amber">metaheurísticas</b>: métodos generales que encuentran soluciones muy buenas en poco tiempo, aunque no garantizan la mejor.</p>
+    </div>
+    <div>
+      <p>En el <b>problema del agente viajero</b> (TSP) hay que visitar <i>n</i> ciudades una sola vez y volver al inicio con la menor distancia. El número de rutas distintas es:</p>
+      <div class="formula" style="margin:6px 0 24px"><math><mfrac><mrow><mo>(</mo><mi>n</mi><mo>−</mo><mn>1</mn><mo>)</mo><mo>!</mo></mrow><mn>2</mn></mfrac></math></div>
+      <div class="ctrl" style="grid-template-columns:150px 1fr 60px"><label>Ciudades <i>n</i></label><input type="range" class="n" min="4" max="60" value="8"><output class="nout">8</output></div>
+      <div style="margin-top:24px">
+        <div class="small muted">Rutas posibles</div>
+        <div class="big-num routes">2 520</div>
+        <div class="small muted" style="margin-top:20px">Revisando mil millones de rutas por segundo:</div>
+        <div class="time" style="font:600 34px/1.2 var(--head);margin-top:6px">0.0000025 s</div>
+      </div>
+    </div>
+  </div>
+  <p class="cite">El TSP es NP-difícil: no se conoce un algoritmo exacto que lo resuelva en tiempo polinomial (Dorigo, Birattari y Stützle, 2006).</p>
+  <aside class="notes">Muevan el control hasta 20 y luego 25 ciudades. Con 20 ya son años de cómputo y con 25 son millones de años. Por eso, en problemas como este, se aceptan soluciones muy buenas aunque no se pueda garantizar que sean la mejor. Ahí entran las metaheurísticas: plantillas de algoritmo que sirven para muchos problemas distintos. ACO es una de ellas y pertenece a la inteligencia de enjambre: muchos agentes simples que, juntos, resuelven algo difícil.</aside>
+</section>
+
+<!-- 6. Estigmergia -->
+<section class="slide" data-part="1" data-sim="forage">
+  <p class="kicker">Biología</p>
+  <h2>Feromona y estigmergia</h2>
+  <div class="cols c64" style="gap:44px">
+    <div>
+      <div class="frame" style="position:relative"><canvas class="cv" data-w="860" data-h="520" style="cursor:crosshair"></canvas></div>
+      <div class="btns" style="margin-top:14px;align-items:center">
+        <button class="b reset">Reiniciar</button>
+        <button class="b clear">Borrar feromona</button>
+        <span class="stat" style="margin-left:12px">Comida entregada: <b class="delivered">0</b></span>
+        <span class="tiny faint" style="margin-left:auto">Clic para poner comida</span>
+      </div>
+    </div>
+    <div>
+      <p>Las hormigas dejan en el suelo una sustancia química, la <b class="amber">feromona</b>, y tienden a seguir los caminos donde hay más.</p>
+      <p class="step" data-at="1"><b>Estigmergia</b> (Grassé, 1959): comunicación <b>indirecta</b> a través del entorno. Una hormiga modifica el ambiente y eso cambia lo que hacen las demás.</p>
+      <p class="step small muted" data-at="2">La información es <b>local</b>: solo la percibe quien pasa por ese lugar.</p>
+    </div>
+  </div>
+  <aside class="notes">Simulación: las hormigas salen del nido (círculo gris) caminando al azar. Cuando encuentran comida regresan dejando feromona ámbar. Las demás hormigas detectan la feromona y la siguen, y así se refuerza el camino. Pueden dar clic para poner otra fuente de comida y ver cómo se forma un camino nuevo. El rastro se borra solo si nadie lo refuerza: eso es la evaporación.</aside>
+</section>
+
+<!-- 8. Doble puente distintas -->
+<section class="slide" data-part="1" data-sim="bridge-diff">
+  <p class="kicker">Biología · Goss et al. (1989)</p>
+  <h2>El experimento del doble puente</h2>
+  <div class="cols c64" style="gap:44px">
+    <div>
+      <div class="frame"><canvas class="cv" data-w="860" data-h="420"></canvas></div>
+      <div class="btns" style="margin-top:14px;align-items:center">
+        <button class="b reset">Repetir experimento</button>
+        <button class="b pri many">Correr 50 veces</button>
+        <span class="stat tally" style="margin-left:10px"></span>
+      </div>
+    </div>
+    <div>
+      <p>El nido se conecta con la comida por <b>dos puentes</b>, uno mucho más largo que el otro.</p>
+      <ul class="small">
+        <li class="step" data-at="1">Las hormigas que eligen el corto <b>regresan primero</b>, así que ese puente recibe feromona <b>antes</b>.</li>
+        <li class="step" data-at="2">Más feromona atrae más hormigas, que dejan más feromona: <b>retroalimentación positiva</b>.</li>
+        <li class="step" data-at="3">La colonia encuentra el <b class="amber">camino más corto</b> sin que ninguna hormiga compare distancias.</li>
+        <li class="step muted" data-at="4">Con dos puentes iguales, la colonia también termina usando uno solo, pero cuál gana es cuestión de azar (Deneubourg et al., 1990).</li>
+      </ul>
+    </div>
+  </div>
+  <p class="cite">Goss, Aron, Deneubourg y Pasteels (1989), Self-organized shortcuts in the Argentine ant, Naturwissenschaften 76, 579–581.</p>
+  <aside class="notes">Cada punto es una hormiga y el grosor de cada puente es su feromona. Este es el experimento clave para ACO. Ninguna hormiga sabe cuál rama es más corta; el resultado sale de que las del camino corto terminan su viaje antes y dejan feromona antes. Con 50 repeticiones gana casi siempre la rama corta.</aside>
+</section>
+
+<!-- 12. Real vs artificial -->
+<section class="slide" data-part="1">
+  <p class="kicker">De la biología al algoritmo</p>
+  <h2>Hormigas reales y hormigas artificiales</h2>
+  <table class="t" style="font-size:23px">
+    <tr><th style="width:24%"></th><th style="width:38%">Hormiga real</th><th>Hormiga artificial</th></tr>
+    <tr class="step" data-at="1"><td><b>Feromona</b></td><td>Sustancia química en el suelo</td><td>Un número <b class="amber">τ<sub>ij</sub></b> guardado en cada arista del grafo</td></tr>
+    <tr class="step" data-at="2"><td><b>Entorno</b></td><td>Espacio continuo</td><td>Un <b>grafo</b> que representa el problema</td></tr>
+    <tr class="step" data-at="3"><td><b>Memoria</b></td><td>No recuerda por dónde pasó</td><td>Lleva la lista de nodos visitados para armar soluciones válidas</td></tr>
+    <tr class="step" data-at="4"><td><b>Información extra</b></td><td>Solo feromona</td><td>También usa una heurística del problema, <b class="teal">η<sub>ij</sub></b> (por ejemplo, 1/distancia)</td></tr>
+    <tr class="step" data-at="5"><td><b>Depósito</b></td><td>Mientras camina</td><td>Al terminar, y según qué tan <b>buena</b> fue su solución</td></tr>
+    <tr class="step" data-at="6"><td><b>Tiempo</b></td><td>Continuo</td><td>Por iteraciones</td></tr>
+  </table>
+  <p class="cite">Dorigo, Maniezzo y Colorni (1996), IEEE Transactions on Systems, Man, and Cybernetics B 26(1), 29–41.</p>
+  <aside class="notes">Las hormigas artificiales no son una copia exacta: toman la idea de la feromona y le agregan cosas que en computación sí se pueden hacer, como recordar el camino o saber la distancia entre ciudades.</aside>
+</section>
+
+<!-- 15. TSP visto por ACO -->
+<section class="slide" data-part="1" data-sim="walk">
+  <p class="kicker">Modelado</p>
+  <h2>El problema como un grafo</h2>
+  <div class="cols c64" style="gap:44px">
+    <div class="frame"><canvas class="cv" data-w="860" data-h="540"></canvas></div>
+    <div>
+      <ul class="small">
+        <li class="step" data-at="1">Cada ciudad es un <b>vértice</b> y cada conexión, una <b>arista</b>.</li>
+        <li class="step" data-at="2">Cada arista guarda dos números: la <b class="amber">feromona τ<sub>ij</sub></b> (lo que aprende la colonia) y la <b class="teal">heurística η<sub>ij</sub> = 1/d<sub>ij</sub></b> (qué tan cerca está).</li>
+        <li class="step" data-at="3">La hormiga empieza en una ciudad al azar y elige la siguiente entre las <b>no visitadas</b> (punteadas), con una probabilidad que depende de τ y η.</li>
+        <li class="step" data-at="4">Guarda en su <b>memoria</b> las ciudades visitadas, para que la ruta sea válida.</li>
+      </ul>
+      <div class="small muted" style="margin:14px 0 8px">Memoria de la hormiga:</div>
+      <div class="mem" style="min-height:96px"></div>
+      <div class="stat" style="margin-top:10px">Longitud: <b class="len">—</b></div>
+    </div>
+  </div>
+  <aside class="notes">Para aplicar ACO hay que representar el problema como un grafo y decidir dónde se guarda la feromona; en el agente viajero va en las aristas, porque una arista (i, j) significa "después de i voy a j". Aquí todas las aristas tienen la misma feromona, así que la hormiga solo se guía por la distancia: prefiere ciudades cercanas, pero no siempre elige la más cercana. Cada ruta que sale es distinta. La siguiente parte explica exactamente cómo se calcula esa probabilidad.</aside>
+</section>
+
+<!-- ============ PARTE 2 ============ -->
+<section class="slide divider" data-part="2">
+  <svg class="trail" viewBox="0 0 620 620"><g fill="none" stroke-linecap="round">
+    <path d="M80 520 L300 120 L540 380 Z" stroke="var(--line)" stroke-width="3"/>
+    <path d="M80 520 L300 120" stroke="var(--amber)" stroke-width="12" opacity=".5"/><path d="M300 120 L540 380" stroke="var(--amber)" stroke-width="6" opacity=".4"/>
+    <path d="M80 520 L300 120 L540 380" stroke="var(--amber)" stroke-width="3" class="flow"/></g>
+    <circle cx="80" cy="520" r="20" fill="var(--surface2)" stroke="var(--text)"/><circle cx="300" cy="120" r="20" fill="var(--surface2)" stroke="var(--text)"/><circle cx="540" cy="380" r="20" fill="var(--surface2)" stroke="var(--text)"/></svg>
+  <div class="center">
+    <div class="num">02</div>
+    <h1>Matemáticas<br>y algoritmo</h1>
+    <div class="topics"><span class="pill">Pseudocódigo</span><span class="pill">Regla de transición</span><span class="pill">Ruleta</span><span class="pill">Evaporación y depósito</span><span class="pill">Código</span></div>
+  </div>
+  <aside class="notes">Segunda parte: cómo funciona Ant System por dentro. Usamos el agente viajero como ejemplo porque fue el primer problema en el que se probó.</aside>
+</section>
+
+<!-- 17. Pseudocódigo -->
+<section class="slide" data-part="2" data-sim="loop">
+  <p class="kicker">La metaheurística ACO</p>
+  <h2>El algoritmo en cuatro bloques</h2>
+  <div class="cols" style="gap:60px;align-items:center">
+    <svg viewBox="0 0 600 560" style="width:100%;max-height:560px">
+      <defs><marker id="ar3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>
+      <g stroke="var(--muted)" stroke-width="2.5" fill="none" marker-end="url(#ar3)">
+        <path d="M300 78 L300 118"/><path d="M300 192 L300 232"/><path d="M300 306 L300 346"/><path d="M300 420 L300 452"/>
+        <path d="M190 494 L60 494 L60 155 L172 155"/>
+      </g>
+      <text x="40" y="330" fill="var(--muted)" font-size="18" transform="rotate(-90 40 330)" text-anchor="middle">siguiente iteración</text>
+      <g class="ph" data-ph="-1"><rect x="190" y="20" width="220" height="58" rx="12" fill="var(--surface)" stroke="var(--line)"/><text x="300" y="56" text-anchor="middle" fill="var(--muted)" font-size="20">Inicializar τ</text></g>
+      <g class="ph" data-ph="0"><rect x="150" y="118" width="300" height="74" rx="14" fill="var(--surface)" stroke="var(--line)" stroke-width="2"/><text x="300" y="152" text-anchor="middle" fill="var(--text)" font-size="23" font-weight="600">Construir soluciones</text><text x="300" y="178" text-anchor="middle" fill="var(--muted)" font-size="17">m hormigas, cada una arma una</text></g>
+      <g class="ph" data-ph="1"><rect x="150" y="232" width="300" height="74" rx="14" fill="var(--surface)" stroke="var(--line)" stroke-width="2" stroke-dasharray="8 6"/><text x="300" y="266" text-anchor="middle" fill="var(--text)" font-size="23" font-weight="600">Búsqueda local</text><text x="300" y="292" text-anchor="middle" fill="var(--muted)" font-size="17">opcional: mejora cada solución</text></g>
+      <g class="ph" data-ph="2"><rect x="150" y="346" width="300" height="74" rx="14" fill="var(--surface)" stroke="var(--line)" stroke-width="2"/><text x="300" y="380" text-anchor="middle" fill="var(--text)" font-size="23" font-weight="600">Actualizar feromona</text><text x="300" y="406" text-anchor="middle" fill="var(--muted)" font-size="17">evaporar y depositar</text></g>
+      <g class="ph" data-ph="3"><rect x="190" y="460" width="220" height="68" rx="34" fill="var(--surface)" stroke="var(--line)" stroke-width="2"/><text x="300" y="501" text-anchor="middle" fill="var(--text)" font-size="21">¿Terminar?</text></g>
+      <text x="430" y="500" fill="var(--muted)" font-size="18">sí → mejor solución</text>
+    </svg>
+    <div>
+      <pre class="code" style="font-size:21px"><span class="ln pl" data-p="-1" data-n="1">inicializar parámetros y feromona τ</span><span class="ln pl" data-p="3" data-n="2"><span class="tk-k">mientras</span> no se cumpla el criterio de paro:</span><span class="ln pl" data-p="0" data-n="3">    ConstruirSoluciones()</span><span class="ln pl" data-p="1" data-n="4">    AplicarBúsquedaLocal()   <span class="tk-c"># opcional</span></span><span class="ln pl" data-p="2" data-n="5">    ActualizarFeromona()</span><span class="ln pl" data-p="3" data-n="6"><span class="tk-k">fin</span></span></pre>
+      <ul class="small" style="margin-top:28px">
+        <li>El criterio de paro suele ser un número de iteraciones o un tiempo límite.</li>
+        <li>Los algoritmos ACO más competitivos casi siempre <b>sí</b> incluyen búsqueda local.</li>
+        <li>Valores típicos: <b>m = n</b>, <b>α = 1</b>, <b>β = 2 a 5</b>, <b>ρ = 0.5</b> (Dorigo y Stützle, 2004).</li>
+      </ul>
+    </div>
+  </div>
+  <p class="cite">Algoritmo 1 de Dorigo, Birattari y Stützle (2006).</p>
+  <aside class="notes">Este esqueleto es igual para todas las variantes de ACO. Lo que cambia entre variantes es cómo eligen las hormigas y cómo se actualiza la feromona. En lo que sigue vamos a ver esos dos bloques con fórmulas.</aside>
+</section>
+
+<!-- 18. Regla de transición -->
+<section class="slide" data-part="2">
+  <p class="kicker">Paso 1 · Construcción de soluciones</p>
+  <h2>Regla de transición de Ant System</h2>
+  <div class="formula" style="font-size:40px;padding:26px">
+    <math display="block"><msubsup><mi>p</mi><mrow><mi>i</mi><mi>j</mi></mrow><mi>k</mi></msubsup><mo>=</mo><mfrac><mrow><msubsup><mi class="m-amber">τ</mi><mrow class="m-amber"><mi>i</mi><mi>j</mi></mrow><mi class="m-amber">α</mi></msubsup><mo>·</mo><msubsup><mi class="m-teal">η</mi><mrow class="m-teal"><mi>i</mi><mi>j</mi></mrow><mi class="m-teal">β</mi></msubsup></mrow><mrow><munder><mo class="m-violet">∑</mo><mrow class="m-violet"><mi>l</mi><mo>∈</mo><msubsup><mi>N</mi><mi>i</mi><mi>k</mi></msubsup></mrow></munder><msubsup><mi>τ</mi><mrow><mi>i</mi><mi>l</mi></mrow><mi>α</mi></msubsup><mo>·</mo><msubsup><mi>η</mi><mrow><mi>i</mi><mi>l</mi></mrow><mi>β</mi></msubsup></mrow></mfrac><mspace width="1.4em"/><mtext>si</mtext><mspace width="0.3em"/><mi>j</mi><mo class="m-coral">∈</mo><msubsup><mi class="m-coral">N</mi><mi class="m-coral">i</mi><mi class="m-coral">k</mi></msubsup><mo>,</mo><mspace width="1em"/><msubsup><mi>p</mi><mrow><mi>i</mi><mi>j</mi></mrow><mi>k</mi></msubsup><mo>=</mo><mn>0</mn><mspace width="0.3em"/><mtext>si no</mtext></math>
+  </div>
+  <div class="cols" style="grid-template-columns:repeat(4,1fr);gap:20px;margin-top:30px">
+    <div class="card step" data-at="1" style="border-top:4px solid var(--amber)"><h3 class="amber">τ<sub>ij</sub><sup>α</sup></h3><p class="small" style="margin:0">Feromona de la arista: lo que la colonia <b>aprendió</b>. α controla cuánto pesa.</p></div>
+    <div class="card step" data-at="2" style="border-top:4px solid var(--teal)"><h3 class="teal">η<sub>ij</sub><sup>β</sup> = (1/d<sub>ij</sub>)<sup>β</sup></h3><p class="small" style="margin:0">Heurística: qué tan <b>cerca</b> está la ciudad. Es fija. β controla cuánto pesa.</p></div>
+    <div class="card step" data-at="3" style="border-top:4px solid var(--violet)"><h3 class="violet">Σ (denominador)</h3><p class="small" style="margin:0">Suma de todas las opciones. Sirve para que las probabilidades <b>sumen 1</b>.</p></div>
+    <div class="card step" data-at="4" style="border-top:4px solid var(--coral)"><h3 class="coral">N<sub>i</sub><sup>k</sup></h3><p class="small" style="margin:0">Ciudades que la hormiga <i>k</i> <b>no ha visitado</b>. Así la ruta siempre es válida.</p></div>
+  </div>
+  <p class="cite">Ecuaciones 4 y 5 de Dorigo, Birattari y Stützle (2006); propuesta original en Dorigo, Maniezzo y Colorni (1996).</p>
+  <aside class="notes">Esta es la fórmula más importante. Arriba se multiplica la feromona por la heurística de la arista. Abajo se suma lo mismo para todas las ciudades posibles, y así las probabilidades suman uno. Si la ciudad ya se visitó, su probabilidad es cero. Comparen con el modelo de Goss: la idea es la misma, más feromona significa más probabilidad.</aside>
+</section>
+
+<!-- 19. Ruleta -->
+<section class="slide" data-part="2" data-sim="roulette">
+  <p class="kicker">Paso 1 · ¿Cómo se elige en la práctica?</p>
+  <h2>Selección por ruleta</h2>
+  <div class="cols" style="grid-template-columns:1.15fr 1fr;gap:44px">
+    <div>
+      <div class="frame"><canvas class="gcv" data-w="760" data-h="300"></canvas></div>
+      <table class="t ptab" style="margin-top:14px;font-size:20px"><thead><tr><th>Ciudad</th><th style="text-align:right">τ</th><th style="text-align:right">d</th><th style="text-align:right">τ<sup>α</sup>·η<sup>β</sup></th><th style="text-align:right">p</th><th style="text-align:right">Elegida</th></tr></thead><tbody></tbody></table>
+    </div>
+    <div class="panel" style="align-items:center">
+      <canvas class="wcv" data-w="420" data-h="380"></canvas>
+      <div style="width:100%">
+        <div class="ctrl"><label>α (feromona)</label><input type="range" class="al" min="0" max="5" step="0.5" value="1"><output class="o-al"></output></div>
+        <div class="ctrl"><label>β (distancia)</label><input type="range" class="be" min="0" max="5" step="0.5" value="2"><output class="o-be"></output></div>
+        <div class="btns" style="margin-top:10px;justify-content:center"><button class="b pri spin">Girar</button><button class="b spin100">Girar 200 veces</button><button class="b rst">Reiniciar conteo</button></div>
+        <p class="tiny muted" style="margin:14px 0 0;text-align:center"><b>α = 0</b>: solo cuenta la distancia (voraz) · <b>β = 0</b>: solo cuenta la feromona (se estanca)</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">La hormiga está en i. La ciudad gris ya la visitó, así que no participa. El grosor ámbar es la feromona y el número es la distancia. Cada rebanada de la ruleta mide lo mismo que su probabilidad. Girando 200 veces, el conteo se acerca a las probabilidades de la tabla. Muevan α a 0 para que solo cuente la distancia, o β a 0 para que solo cuente la feromona.</aside>
+</section>
+
+<!-- 21. Actualización de feromona -->
+<section class="slide" data-part="2" data-sim="update" data-steps="4">
+  <p class="kicker">Paso 2 · Actualizar feromona</p>
+  <h2>Evaporación y depósito</h2>
+  <div class="cols" style="grid-template-columns:1fr 1.25fr;gap:40px">
+    <div>
+      <div class="formula upd-f" style="font-size:30px;flex-direction:column;align-items:center">
+        <math display="block"><msub><mi>τ</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo>←</mo><mrow class="evap"><mo>(</mo><mn>1</mn><mo>−</mo><mi>ρ</mi><mo>)</mo><mo>·</mo><msub><mi>τ</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub></mrow><mo>+</mo><mrow class="dep"><munderover><mo>∑</mo><mrow><mi>k</mi><mo>=</mo><mn>1</mn></mrow><mi>m</mi></munderover><mi mathvariant="normal">Δ</mi><msubsup><mi>τ</mi><mrow><mi>i</mi><mi>j</mi></mrow><mi>k</mi></msubsup></mrow></math>
+        <math display="block" style="font-size:.8em"><mi mathvariant="normal">Δ</mi><msubsup><mi>τ</mi><mrow><mi>i</mi><mi>j</mi></mrow><mi>k</mi></msubsup><mo>=</mo><mrow><mo>{</mo><mtable columnalign="left"><mtr><mtd><mi>Q</mi><mo>/</mo><msub><mi>L</mi><mi>k</mi></msub></mtd><mtd><mtext>si la hormiga</mtext><mspace width="0.3em"/><mi>k</mi><mspace width="0.3em"/><mtext>usó</mtext><mspace width="0.3em"/><mo>(</mo><mi>i</mi><mo>,</mo><mi>j</mi><mo>)</mo></mtd></mtr><mtr><mtd><mn>0</mn></mtd><mtd><mtext>si no</mtext></mtd></mtr></mtable></mrow></math>
+      </div>
+      <ul class="small" style="margin-top:22px">
+        <li><b>ρ</b> ∈ (0, 1]: tasa de evaporación. Hace que la colonia olvide rutas viejas y no se quede con la primera que encontró.</li>
+        <li><b>L<sub>k</sub></b>: longitud de la ruta de la hormiga <i>k</i>. Ruta más corta ⇒ deposita <b>más</b>.</li>
+        <li><b>Q</b>: constante (normalmente 1).</li>
+      </ul>
+      <div class="upd-msg card" style="margin-top:16px;padding:16px 20px;font-size:20px;min-height:84px"></div>
+    </div>
+    <div>
+      <div class="frame"><canvas class="cv" data-w="780" data-h="520"></canvas></div>
+      <div class="legend upd-leg" style="margin-top:12px"></div>
+    </div>
+  </div>
+  <p class="cite">Ecuaciones 2 y 3 de Dorigo, Birattari y Stützle (2006).</p>
+  <aside class="notes">Avancen con la flecha: primero todas las aristas pierden feromona por la evaporación, todas en la misma proporción. Luego cada hormiga deposita en las aristas que usó. La hormiga con la ruta más corta deposita más, por eso sus aristas quedan más gruesas. Las aristas que nadie usó solo se evaporan.</aside>
+</section>
+
+<!-- 27. Código 1 -->
+<section class="slide" data-part="2" data-steps="5">
+  <p class="kicker">Implementación en Python · 1 de 2</p>
+  <h2>Construir una ruta</h2>
+  <div class="cols" style="grid-template-columns:1.45fr 1fr;gap:40px">
+<pre class="code py" data-hl="1-8|12-13|15|16-17|18-21" style="font-size:16px;line-height:1.45">def ruleta(candidatas, pesos):
+    r = random.random() * sum(pesos)
+    acumulado = 0.0
+    for j, w in zip(candidatas, pesos):
+        acumulado += w
+        if acumulado >= r:
+            return j
+    return candidatas[-1]
+
+def construir_ruta(tau, eta, alpha, beta):
+    n = len(tau)
+    actual = random.randrange(n)
+    ruta, visitadas = [actual], {actual}
+    while len(ruta) &lt; n:
+        candidatas = [j for j in range(n) if j not in visitadas]
+        pesos = [tau[actual][j] ** alpha * eta[actual][j] ** beta
+                 for j in candidatas]
+        siguiente = ruleta(candidatas, pesos)
+        ruta.append(siguiente)
+        visitadas.add(siguiente)
+        actual = siguiente
+    return ruta</pre>
+    <div class="small">
+      <p class="step" data-at="1"><b class="amber">ruleta</b>: suma los pesos y avanza hasta pasar el número aleatorio. Es la columna de "acumulado" del ejemplo.</p>
+      <p class="step" data-at="2">Ciudad inicial al azar y <b>memoria</b> de visitadas (un conjunto).</p>
+      <p class="step" data-at="3">Las candidatas son el conjunto <b class="coral">N<sub>i</sub><sup>k</sup></b>.</p>
+      <p class="step" data-at="4">El peso es el <b>numerador</b> de la regla: τ<sup>α</sup>·η<sup>β</sup>. No hace falta dividir: la ruleta ya normaliza.</p>
+      <p class="step" data-at="5">Se avanza a la ciudad elegida y se repite hasta visitar todas.</p>
+    </div>
+  </div>
+  <p class="cite">Archivo completo: aco_tsp.py (en la misma carpeta que esta presentación).</p>
+  <aside class="notes">El detalle de cada función está en la guía de estudio (Guia_codigo_ACO). Lo único que no se ve directo de la fórmula es que no dividimos entre la suma. La ruleta multiplica el número aleatorio por la suma de pesos, y eso es lo mismo que normalizar.</aside>
+</section>
+
+<!-- 28. Código 2 -->
+<section class="slide" data-part="2" data-steps="5">
+  <p class="kicker">Implementación en Python · 2 de 2</p>
+  <h2>Actualizar feromona y ciclo principal</h2>
+  <div class="cols" style="grid-template-columns:1.75fr 1fr;gap:32px">
+<pre class="code py" data-hl="3-5|6-10|14-16|19-21|22-26" style="font-size:14px;line-height:1.4">def actualizar_feromona(tau, rutas, dist, rho, Q):
+    n = len(tau)
+    for i in range(n):                    # 1) evaporación
+        for j in range(n):
+            tau[i][j] *= 1 - rho
+    for ruta in rutas:                    # 2) depósito
+        deposito = Q / longitud(ruta, dist)
+        for a, b in zip(ruta, ruta[1:] + ruta[:1]):
+            tau[a][b] += deposito
+            tau[b][a] += deposito
+
+def ant_system(dist, m, alpha, beta, rho, Q, iteraciones):
+    n = len(dist)
+    eta = [[0.0 if i == j else 1 / dist[i][j] for j in range(n)] for i in range(n)]
+    tau0 = m / longitud(vecino_mas_cercano(dist), dist)
+    tau = [[tau0] * n for _ in range(n)]
+    mejor_ruta, mejor_L = None, math.inf
+    historial = []
+    for _ in range(iteraciones):
+        rutas = [construir_ruta(tau, eta, alpha, beta) for _ in range(m)]
+        actualizar_feromona(tau, rutas, dist, rho, Q)
+        for ruta in rutas:
+            L = longitud(ruta, dist)
+            if L &lt; mejor_L:
+                mejor_ruta, mejor_L = ruta, L
+        historial.append(mejor_L)
+    return mejor_ruta, mejor_L, historial</pre>
+    <div class="small">
+      <p class="step" data-at="1">Evaporación: <b>(1 − ρ)·τ</b> en todas las aristas.</p>
+      <p class="step" data-at="2">Depósito <b>Q/L<sub>k</sub></b> en cada arista de cada ruta, en los dos sentidos porque el TSP es simétrico.</p>
+      <p class="step" data-at="3">Se calcula <b class="teal">η</b> una sola vez. La feromona empieza igual en todo el grafo: τ₀ = m / C<sup>nn</sup>, donde C<sup>nn</sup> es la ruta del vecino más cercano.</p>
+      <p class="step" data-at="4">Cada iteración: <b>m</b> hormigas construyen y luego se actualiza τ.</p>
+      <p class="step" data-at="5">Se guarda la mejor ruta encontrada hasta ahora y su longitud en el historial.</p>
+      <p class="step tag" data-at="5" style="margin-top:6px">Costo por iteración: O(m·n²)</p>
+    </div>
+  </div>
+  <aside class="notes">El detalle de cada función está en la guía de estudio (Guia_codigo_ACO). Con esto ya está el algoritmo completo. Corriendo el archivo con 30 ciudades aleatorias se obtiene la mejor ruta y una gráfica de cómo baja la longitud. El costo es m hormigas por n pasos por n candidatas en cada paso.</aside>
+</section>
+
+<!-- ============ PARTE 3 ============ -->
+<section class="slide divider" data-part="3">
+  <svg class="trail" viewBox="0 0 620 620"><g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M310 310 L120 140 L80 330 L200 500 Z" stroke="var(--coral)" stroke-width="4" opacity=".7"/>
+    <path d="M310 310 L420 110 L560 230 L500 420 Z" stroke="var(--amber)" stroke-width="4" opacity=".7"/>
+    <path d="M310 310 L330 560 L470 520 Z" stroke="var(--teal)" stroke-width="4" opacity=".7"/>
+    <path d="M310 310 L120 140 L80 330 L200 500 Z" stroke="var(--coral)" stroke-width="2" class="flow"/></g>
+    <rect x="290" y="290" width="40" height="40" rx="6" fill="var(--text)"/></svg>
+  <div class="center">
+    <div class="num">03</div>
+    <h1>Variantes<br>y aplicaciones</h1>
+    <div class="topics"><span class="pill">Demo en vivo</span><span class="pill">MAX–MIN y ACS</span><span class="pill">Aplicaciones</span><span class="pill">AntNet</span><span class="pill">Ventajas y desventajas</span></div>
+  </div>
+  <aside class="notes">Tercera parte: ver el algoritmo funcionando, las dos variantes más usadas y dónde se aplica fuera del salón.</aside>
+</section>
+
+<!-- 30. Demo -->
+<section class="slide" data-part="3" data-sim="demo" style="padding-top:46px">
+  <p class="kicker">Demo en vivo</p>
+  <h2 style="margin-bottom:22px">El agente viajero resuelto por la colonia</h2>
+  <div style="display:grid;grid-template-columns:900px 1fr;gap:30px">
+    <div><div class="frame"><canvas class="cv" data-w="900" data-h="590" style="cursor:copy"></canvas></div>
+      <div class="legend" style="margin-top:10px"><span><i style="background:var(--amber)"></i>feromona</span><span><i style="background:var(--coral)"></i>mejor ruta</span><span><i style="background:var(--text);width:8px;height:8px;border-radius:50%"></i>hormigas</span></div>
+    </div>
+    <div class="panel" style="gap:11px">
+      <div class="btns"><select class="b variant"><option value="AS">Ant System</option><option value="MMAS">MAX–MIN AS</option><option value="ACS">Ant Colony System</option></select><button class="b pri play">Iniciar</button><button class="b reset">Reiniciar</button></div>
+      <div class="ctrl"><label>Ciudades</label><input type="range" class="n" min="8" max="70" value="30"><output class="o-n"></output></div>
+      <div class="ctrl"><label>Hormigas m</label><input type="range" class="m" min="1" max="60" value="20"><output class="o-m"></output></div>
+      <div class="ctrl"><label>α</label><input type="range" class="al" min="0" max="5" step="0.5" value="1"><output class="o-al"></output></div>
+      <div class="ctrl"><label>β</label><input type="range" class="be" min="0" max="6" step="0.5" value="3"><output class="o-be"></output></div>
+      <div class="ctrl"><label>ρ</label><input type="range" class="rho" min="0.01" max="0.9" step="0.01" value="0.5"><output class="o-rho"></output></div>
+      <div class="ctrl q0row"><label>q₀ (ACS)</label><input type="range" class="q0" min="0" max="1" step="0.05" value="0.9"><output class="o-q0"></output></div>
+      <div class="ctrl" style="grid-template-columns:120px 1fr 110px"><label>Velocidad</label><input type="range" class="spd" min="1" max="5" step="1" value="2"><output class="o-spd" style="white-space:nowrap"></output></div>
+      <div class="btns"><button class="b newc">Nuevas ciudades</button><label class="small muted" style="display:flex;align-items:center;gap:6px"><input type="checkbox" class="showbest" checked> mejor ruta</label><label class="small muted" style="display:flex;align-items:center;gap:6px"><input type="checkbox" class="showph" checked> feromona</label></div>
+      <div class="stat">Iteración <b class="it">0</b> · Mejor L <b class="bl">—</b></div>
+      <div class="frame"><canvas class="ch" data-w="440" data-h="150"></canvas></div>
+      <div class="tiny faint">Clic en el mapa para agregar una ciudad.</div>
+    </div>
+  </div>
+  <aside class="notes">Empiecen con velocidad 1 o 2 para que se vea a las hormigas caminar. La feromona se ve más brillante en las aristas que más se usan. Después suban la velocidad. Para mostrar los casos extremos: pongan α en 0 y la mejor ruta deja de mejorar; pongan β en 0 y se estanca en una ruta mala. Cambien la variante para comparar. Si con Ant System la mejor ruta se queda con cruces, es el estancamiento del que habla la siguiente diapositiva.</aside>
+</section>
+
+<!-- Variantes -->
+<section class="slide" data-part="3">
+  <p class="kicker">Variantes</p>
+  <h2>Dos mejoras a Ant System</h2>
+  <p class="small muted" style="margin:-16px 0 26px">Ant System tiende al <b>estancamiento</b>: la feromona se concentra y todas las hormigas repiten la misma ruta. Las dos variantes más exitosas atacan ese problema.</p>
+  <div class="cols" style="gap:36px">
+    <div class="card step" data-at="1" style="border-top:4px solid var(--amber)">
+      <h3 class="amber" style="margin-bottom:2px">MAX–MIN Ant System</h3>
+      <p class="tiny muted">Stützle y Hoos (2000)</p>
+      <ul class="small">
+        <li>Solo deposita <b>la mejor hormiga</b>.</li>
+        <li>La feromona se limita a [τ<sub>min</sub>, τ<sub>max</sub>]: ninguna arista llega a cero, así que siempre se puede elegir.</li>
+        <li>Empieza con τ = τ<sub>max</sub> en todo el grafo para explorar mucho al inicio.</li>
+      </ul>
+      <div class="formula" style="font-size:24px"><math><msub><mi>τ</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo>←</mo><msubsup><mrow><mo>[</mo><mo>(</mo><mn>1</mn><mo>−</mo><mi>ρ</mi><mo>)</mo><msub><mi>τ</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo>+</mo><mi mathvariant="normal">Δ</mi><msubsup><mi>τ</mi><mrow><mi>i</mi><mi>j</mi></mrow><mtext>best</mtext></msubsup><mo>]</mo></mrow><msub><mi class="m-teal">τ</mi><mtext class="m-teal">min</mtext></msub><msub><mi class="m-coral">τ</mi><mtext class="m-coral">max</mtext></msub></msubsup></math></div>
+    </div>
+    <div class="card step" data-at="2" style="border-top:4px solid var(--teal)">
+      <h3 class="teal" style="margin-bottom:2px">Ant Colony System</h3>
+      <p class="tiny muted">Dorigo y Gambardella (1997)</p>
+      <ul class="small">
+        <li>Con probabilidad <b>q₀</b> (≈ 0.9) elige directo la mejor arista; si no, usa la ruleta.</li>
+        <li>Cada hormiga le <b>quita</b> feromona a la arista que acaba de usar, para que las demás prueben otros caminos.</li>
+        <li>Al final de la iteración solo la mejor ruta recibe feromona.</li>
+      </ul>
+      <div class="formula" style="font-size:24px"><math><msub><mi>τ</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo>←</mo><mo>(</mo><mn>1</mn><mo>−</mo><mi>φ</mi><mo>)</mo><msub><mi>τ</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo>+</mo><mi>φ</mi><msub><mi>τ</mi><mn>0</mn></msub></math></div>
+    </div>
+  </div>
+  <p class="cite">Stützle y Hoos (2000), Future Generation Computer Systems 16, 889–914; Dorigo y Gambardella (1997), IEEE Transactions on Evolutionary Computation 1(1), 53–66.</p>
+  <aside class="notes">Las dos variantes hacen que solo la mejor hormiga deposite, lo que concentra la búsqueda en las buenas rutas. Para no estancarse, cada una mantiene la exploración de forma distinta: MAX-MIN pone un piso y un techo a la feromona; ACS le quita feromona a cada arista que se usa. En la demo anterior se puede cambiar la variante para verlas funcionar.</aside>
+</section>
+
+<!-- Aplicaciones -->
+<section class="slide" data-part="3" data-sim="vrp">
+  <p class="kicker">Aplicaciones</p>
+  <h2>¿Dónde se usa?</h2>
+  <div class="cols" style="grid-template-columns:1fr 1.1fr;gap:44px">
+    <div>
+      <p class="small">Se ha aplicado a más de cien problemas NP-difíciles. En varios es de los mejores métodos conocidos.</p>
+      <div style="margin-bottom:22px"><span class="pill">Ruteo de vehículos</span><span class="pill">Calendarización de tareas</span><span class="pill">Asignación cuadrática</span><span class="pill">Horarios de cursos</span><span class="pill">Cobertura de conjuntos</span><span class="pill">Plegamiento de proteínas</span><span class="pill">Redes de comunicación</span></div>
+      <div class="card hl step" data-at="1">
+        <h3>Caso real: ruteo de vehículos</h3>
+        <p class="small">Camiones con capacidad limitada salen de un almacén y deben atender a todos los clientes recorriendo la menor distancia.</p>
+        <p class="small" style="margin:0"><b>AntRoute</b> (AntOptima, Suiza) planeó con ACO las rutas de cientos de vehículos de <b>Migros</b> (supermercados) y <b>Barilla</b> (pasta).</p>
+      </div>
+    </div>
+    <div>
+      <div class="frame"><canvas class="cv" data-w="760" data-h="500"></canvas></div>
+      <p class="tiny faint" style="margin-top:8px">Ilustración del problema: un almacén, 3 camiones y sus clientes. Las rutas son de ejemplo, no son resultados de las empresas.</p>
+    </div>
+  </div>
+  <p class="cite">Dorigo, Birattari y Stützle (2006), tabla 2; Rizzoli, Montemanni, Lucibello y Gambardella (2007), Swarm Intelligence 1(2), 135–151.</p>
+  <aside class="notes">ACO funciona en cualquier problema que se pueda ver como construir una solución paso a paso. El uso industrial más conocido es el ruteo de vehículos: es como el agente viajero, pero con varios camiones, capacidad limitada y horarios de entrega.</aside>
+</section>
+
+<!-- 37. AntNet -->
+<section class="slide" data-part="3" data-sim="antnet">
+  <p class="kicker">Caso real 2 · Redes de comunicación</p>
+  <h2>AntNet: enrutamiento con hormigas</h2>
+  <div class="cols" style="grid-template-columns:1fr 1.25fr;gap:40px">
+    <div>
+      <p class="small">En una red, el costo de cada enlace cambia con el tráfico y los enlaces pueden fallar. Es un problema <b>dinámico</b>.</p>
+      <ul class="small">
+        <li class="step" data-at="1">Cada nodo tiene una <b>tabla de probabilidades</b>: por cuál vecino mandar un paquete hacia cada destino.</li>
+        <li class="step" data-at="2">Se envían paquetes <b>hormiga</b> que exploran la red y miden el tiempo del viaje.</li>
+        <li class="step" data-at="3">Al regresar, refuerzan las salidas que dieron <b>viajes rápidos</b> en las tablas de los nodos por donde pasaron.</li>
+        <li class="step" data-at="4">Si un enlace falla, las hormigas encuentran otra ruta <b>sin control central</b>.</li>
+      </ul>
+      <p class="tiny muted step" data-at="4">En simulación superó a seis algoritmos de enrutamiento de su época.</p>
+    </div>
+    <div>
+      <div class="frame"><canvas class="cv" data-w="800" data-h="470"></canvas></div>
+      <div class="btns" style="margin-top:12px;align-items:center"><button class="b pri cut">Cortar enlace</button><button class="b restore">Restaurar red</button><span class="legend" style="margin-left:10px"><span><i style="background:var(--amber);width:9px;height:9px;border-radius:50%"></i>datos</span><span><i style="background:var(--text);width:6px;height:6px;border-radius:50%"></i>hormigas</span></span></div>
+    </div>
+  </div>
+  <p class="cite">Di Caro y Dorigo (1998), Journal of Artificial Intelligence Research 9, 317–365. Simulación simplificada con un solo destino.</p>
+  <aside class="notes">Los puntos ámbar son paquetes de datos que van de S a D siguiendo la opción más probable de cada tabla. Los puntos claros son hormigas explorando. Corten un enlace: los datos se pierden un momento y luego, cuando las hormigas actualizan las tablas, empiezan a ir por otro camino. Esta es la ventaja de ACO en problemas que cambian con el tiempo.</aside>
+</section>
+
+<!-- 39. Ventajas y desventajas -->
+<section class="slide" data-part="3">
+  <p class="kicker">Balance</p>
+  <h2>Ventajas y desventajas</h2>
+  <div class="cols" style="gap:40px">
+    <div class="card" style="border-top:4px solid var(--green)">
+      <h3 class="green">Ventajas</h3>
+      <ul class="small">
+        <li class="step" data-at="1">Construye soluciones <b>válidas por diseño</b>: las restricciones se respetan al construir.</li>
+        <li class="step" data-at="2">Combina información del problema (η) con lo aprendido (τ).</li>
+        <li class="step" data-at="3">Se adapta bien a problemas <b>dinámicos</b> (redes, pedidos en tiempo real).</li>
+        <li class="step" data-at="4">Es fácil de <b>paralelizar</b>: las hormigas son independientes.</li>
+        <li class="step" data-at="5">Da buenos puntos de partida para la búsqueda local.</li>
+      </ul>
+    </div>
+    <div class="card" style="border-top:4px solid var(--coral)">
+      <h3 class="coral">Desventajas</h3>
+      <ul class="small">
+        <li class="step" data-at="1">Muchos <b>parámetros</b> que ajustar (m, α, β, ρ, τ₀).</li>
+        <li class="step" data-at="2">Riesgo de <b>estancamiento</b> si la feromona se concentra.</li>
+        <li class="step" data-at="3">No hay garantía sobre el <b>tiempo</b> para llegar a una buena solución.</li>
+        <li class="step" data-at="4">Pensado para problemas <b>discretos</b>; para continuos se necesita ACO<sub>ℝ</sub>.</li>
+        <li class="step" data-at="5">Costo por iteración O(m·n²) en el TSP; crece rápido con n.</li>
+      </ul>
+    </div>
+  </div>
+  <aside class="notes">Cada ventaja tiene su contraparte. Por ejemplo, que se adapte a cambios es porque la evaporación hace que olvide, pero esa misma evaporación es un parámetro más que hay que ajustar.</aside>
+</section>
+
+<!-- 42. Referencias -->
+<section class="slide" data-part="3">
+  <p class="kicker">Fuentes</p>
+  <h2>Referencias</h2>
+  <div class="cols" style="gap:44px;font-size:18px;line-height:1.5">
+    <div>
+      <p>Deneubourg, J.-L., Aron, S., Goss, S. y Pasteels, J. M. (1990). The self-organizing exploratory pattern of the Argentine ant. <i>Journal of Insect Behavior</i>, 3, 159–168.</p>
+      <p>Di Caro, G. y Dorigo, M. (1998). AntNet: Distributed stigmergetic control for communications networks. <i>Journal of Artificial Intelligence Research</i>, 9, 317–365.</p>
+      <p>Dorigo, M., Birattari, M. y Stützle, T. (2006). Ant colony optimization. <i>IEEE Computational Intelligence Magazine</i>, 1(4), 28–39.</p>
+      <p>Dorigo, M. y Gambardella, L. M. (1997). Ant colony system: A cooperative learning approach to the traveling salesman problem. <i>IEEE Transactions on Evolutionary Computation</i>, 1(1), 53–66.</p>
+      <p>Dorigo, M., Maniezzo, V. y Colorni, A. (1996). Ant system: Optimization by a colony of cooperating agents. <i>IEEE Transactions on Systems, Man, and Cybernetics, Part B</i>, 26(1), 29–41.</p>
+    </div>
+    <div>
+      <p>Dorigo, M. y Stützle, T. (2004). <i>Ant Colony Optimization</i>. MIT Press.</p>
+      <p>Goss, S., Aron, S., Deneubourg, J.-L. y Pasteels, J. M. (1989). Self-organized shortcuts in the Argentine ant. <i>Naturwissenschaften</i>, 76, 579–581.</p>
+      <p>Rizzoli, A. E., Montemanni, R., Lucibello, E. y Gambardella, L. M. (2007). Ant colony optimization for real-world vehicle routing problems. <i>Swarm Intelligence</i>, 1(2), 135–151.</p>
+      <p>Socha, K. y Dorigo, M. (2008). Ant colony optimization for continuous domains. <i>European Journal of Operational Research</i>, 185(3), 1155–1173.</p>
+      <p>Stützle, T. y Hoos, H. H. (2000). MAX–MIN ant system. <i>Future Generation Computer Systems</i>, 16(8), 889–914.</p>
+    </div>
+  </div>
+  <aside class="notes">Todas las fuentes son artículos de revista arbitrada o el libro de referencia del tema.</aside>
+</section>
+
+<!-- 43. Preguntas -->
+<section class="slide" data-part="0" data-sim="forage-bg">
+  <canvas class="bgcv" data-w="1600" data-h="900" style="position:absolute;inset:0;opacity:.85"></canvas>
+  <div style="position:relative;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center">
+    <h1 style="font-size:110px">¿Preguntas?</h1>
+    <p style="font-size:30px;color:var(--muted);margin-top:24px">Gracias</p>
+  </div>
+  <aside class="notes">Si preguntan cuándo conviene usar ACO: cuando el problema se puede ver como construir una solución paso a paso sobre un grafo, sobre todo si cambia con el tiempo.</aside>
+</section>
+<div id="foot"><span class="where"></span><span class="pg"></span></div>
+<div id="bar"></div>
+</div>
+
+<div id="notes"><h4>Notas</h4><div class="body"></div></div>
+<div id="help"><kbd>←</kbd> <kbd>→</kbd> avanzar · <kbd>N</kbd> notas · <kbd>T</kbd> tema claro/oscuro · <kbd>F</kbd> pantalla completa</div>
+<div id="nav"><button class="pv" title="Anterior">‹</button><button class="nx" title="Siguiente">›</button></div>
+
+<script>
+/* ===== Equipo (solo aparece en la portada) ===== */
+const EQUIPO = ["Carlos Javier Gutiérrez de la Torre", "Ferran Prado Roesner", "Francisco Javier González Barriga"];
+const PARTES = {1: "Inspiración y modelado", 2: "Matemáticas y algoritmo", 3: "Variantes y aplicaciones"};
+
+const $ = (q, el = document) => el.querySelector(q);
+const $$ = (q, el = document) => [...el.querySelectorAll(q)];
+const stage = $('#stage');
+const slides = $$('.slide');
+let cur = 0;
+
+/* ---------- utilidades ---------- */
+const PAL = {};
+function readPal() {
+  const cs = getComputedStyle(document.documentElement);
+  ['bg','surface','surface2','line','text','muted','faint','amber','teal','coral','violet','green'].forEach(k => PAL[k] = cs.getPropertyValue('--' + k).trim());
+}
+function hex(h) { h = h.replace('#', ''); if (h.length === 3) h = h.split('').map(c => c + c).join(''); const n = parseInt(h, 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
+function rgba(h, a) { const [r, g, b] = hex(h); return `rgba(${r},${g},${b},${a})`; }
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+const lerp = (a, b, t) => a + (b - a) * t;
+const ease = t => 1 - Math.pow(1 - clamp(t, 0, 1), 3);
+function rng(seed) { let a = seed >>> 0; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function cvs(cv) {
+  const w = +cv.dataset.w, h = +cv.dataset.h, R = 2;
+  cv.width = w * R; cv.height = h * R; cv.style.width = w + 'px'; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(R, 0, 0, R, 0, 0);
+  return {cv, ctx, w, h};
+}
+function circle(ctx, x, y, r) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); }
+function evtPos(e, cv) { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * (+cv.dataset.w / r.width), (e.clientY - r.top) * (+cv.dataset.h / r.height)]; }
+function randomCities(n, w, h, m, rand = Math.random) {
+  const pts = [], minD = Math.sqrt((w - 2 * m) * (h - 2 * m) / n) * 0.5; let tries = 0;
+  while (pts.length < n && tries < 30000) { tries++; const p = [m + rand() * (w - 2 * m), m + rand() * (h - 2 * m)]; if (pts.every(q => Math.hypot(p[0] - q[0], p[1] - q[1]) > minD)) pts.push(p); }
+  while (pts.length < n) pts.push([m + rand() * (w - 2 * m), m + rand() * (h - 2 * m)]);
+  return pts;
+}
+const SUP = {'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹','-':'⁻'};
+function sci(x, dg = 2) { if (!isFinite(x)) return '∞'; if (x === 0) return '0'; const e = Math.floor(Math.log10(Math.abs(x))); return (x / Math.pow(10, e)).toFixed(dg) + ' × 10' + String(e).split('').map(c => SUP[c]).join(''); }
+function grp(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
+function bindRange(s, cls, fmt, cb) {
+  const inp = $('.' + cls, s), out = $('.o-' + cls, s);
+  const f = () => { if (out) out.textContent = fmt ? fmt(+inp.value) : inp.value; if (cb) cb(+inp.value); };
+  inp.addEventListener('input', f); f(); return inp;
+}
+function setRange(s, cls, v) { const inp = $('.' + cls, s); inp.value = v; inp.dispatchEvent(new Event('input')); }
+function text(ctx, str, x, y, {size = 16, color = PAL.text, align = 'left', base = 'alphabetic', weight = 400, font = 'body'} = {}) {
+  ctx.font = `${weight} ${size}px ${font === 'mono' ? "'JetBrains Mono',Consolas,monospace" : "'IBM Plex Sans','Segoe UI',sans-serif"}`;
+  ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = base; ctx.fillText(str, x, y);
+}
+function chart(c, series, {xlabel = 'iteración'} = {}) {
+  const {ctx, w, h} = c; ctx.clearRect(0, 0, w, h);
+  const L = 52, R = 12, T = 12, B = 24, n = Math.max(...series.map(s => s.data.length));
+  if (n < 2) { text(ctx, 'Sin datos todavía', w / 2, h / 2, {align: 'center', base: 'middle', color: PAL.faint, size: 14}); return; }
+  let lo = Infinity, hi = -Infinity;
+  series.forEach(s => s.data.forEach((v, i) => { if (i >= Math.min(2, s.data.length - 1) && isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); } }));
+  if (!(hi > lo)) { hi = lo + 1; } const pad = (hi - lo) * 0.08; lo -= pad; hi += pad;
+  const X = i => L + (w - L - R) * i / (n - 1), Y = v => T + (h - T - B) * (1 - (v - lo) / (hi - lo));
+  ctx.strokeStyle = PAL.line; ctx.lineWidth = 1;
+  for (let k = 0; k <= 2; k++) { const v = lo + (hi - lo) * k / 2, y = Y(v); ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(w - R, y); ctx.stroke(); text(ctx, v.toFixed(0), L - 6, y, {align: 'right', base: 'middle', size: 11, color: PAL.faint, font: 'mono'}); }
+  text(ctx, xlabel + ' ' + (n - 1), w - R, h - 6, {align: 'right', size: 11, color: PAL.faint});
+  series.forEach(s => { ctx.strokeStyle = s.color; ctx.lineWidth = s.width || 2; ctx.globalAlpha = s.alpha || 1; ctx.beginPath(); s.data.forEach((v, i) => { const x = X(i), y = Y(clamp(v, lo, hi)); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke(); ctx.globalAlpha = 1; });
+}
+
+/* ---------- motor ACO (AS, MMAS, ACS) ---------- */
+class ACO {
+  constructor(pts, o) { this.pts = pts; this.o = Object.assign({variant: 'AS', m: 20, alpha: 1, beta: 3, rho: 0.5, q0: 0.9, phi: 0.1, Q: 1}, o); this.init(); }
+  init() {
+    const P = this.pts, n = this.n = P.length;
+    this.d = new Float64Array(n * n); this.eta = new Float64Array(n * n);
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) { const d = Math.hypot(P[i][0] - P[j][0], P[i][1] - P[j][1]); this.d[i * n + j] = d; this.eta[i * n + j] = i === j ? 0 : 1 / Math.max(d, 1e-9); }
+    const vis = new Uint8Array(n); let c = 0, L = 0; vis[0] = 1;
+    for (let s = 1; s < n; s++) { let b = -1, bd = Infinity; for (let j = 0; j < n; j++) if (!vis[j] && this.d[c * n + j] < bd) { bd = this.d[c * n + j]; b = j; } vis[b] = 1; L += bd; c = b; }
+    this.Cnn = L + this.d[c * n];
+    const {variant, m, rho} = this.o;
+    this.tau0 = variant === 'AS' ? m / this.Cnn : variant === 'MMAS' ? 1 / (rho * this.Cnn) : 1 / (n * this.Cnn);
+    this.tau = new Float64Array(n * n).fill(this.tau0);
+    this.tmax = this.tau0; this.tmin = this.tau0 / (2 * n);
+    this.best = null; this.bestL = Infinity; this.it = 0; this.since = 0; this.hist = []; this.histIb = [];
+  }
+  tour() {
+    const n = this.n, {variant, q0, phi} = this.o, tau = this.tau, ch = this.ch;
+    const vis = new Uint8Array(n), t = new Int32Array(n), w = this.w || (this.w = new Float64Array(n));
+    let c = Math.random() * n | 0; t[0] = c; vis[c] = 1;
+    for (let s = 1; s < n; s++) {
+      let sum = 0, bj = -1, bw = -1;
+      for (let j = 0; j < n; j++) {
+        if (vis[j]) { w[j] = 0; continue; }
+        const x = variant === 'ACS' ? tau[c * n + j] * ch[c * n + j] : ch[c * n + j];
+        w[j] = x; sum += x; if (x > bw) { bw = x; bj = j; }
+      }
+      let nx = -1;
+      if (variant === 'ACS' && Math.random() < q0 && bj >= 0) nx = bj;
+      else if (sum > 0 && isFinite(sum)) { let r = Math.random() * sum; for (let j = 0; j < n; j++) if (!vis[j]) { r -= w[j]; nx = j; if (r <= 0) break; } }
+      if (nx < 0) { const free = []; for (let j = 0; j < n; j++) if (!vis[j]) free.push(j); nx = free[Math.random() * free.length | 0]; }
+      if (variant === 'ACS') { const v = (1 - phi) * tau[c * n + nx] + phi * this.tau0; tau[c * n + nx] = tau[nx * n + c] = v; }
+      t[s] = nx; vis[nx] = 1; c = nx;
+    }
+    if (variant === 'ACS') { const a = t[n - 1], b = t[0], v = (1 - phi) * tau[a * n + b] + phi * this.tau0; tau[a * n + b] = tau[b * n + a] = v; }
+    return t;
+  }
+  len(t) { const n = this.n; let L = 0; for (let k = 0; k < n; k++) L += this.d[t[k] * n + t[(k + 1) % n]]; return L; }
+  construct() {
+    const n = this.n, {variant, alpha, beta} = this.o;
+    this.ch = this.ch || new Float64Array(n * n);
+    for (let i = 0; i < n * n; i++) this.ch[i] = variant === 'ACS' ? Math.pow(this.eta[i], beta) : Math.pow(this.tau[i], alpha) * Math.pow(this.eta[i], beta);
+    const tours = [], Ls = [];
+    for (let k = 0; k < this.o.m; k++) { const t = this.tour(); tours.push(t); Ls.push(this.len(t)); }
+    return {tours, Ls};
+  }
+  deposit(t, amt) { const n = this.n; for (let k = 0; k < n; k++) { const a = t[k], b = t[(k + 1) % n]; this.tau[a * n + b] += amt; this.tau[b * n + a] = this.tau[a * n + b]; } }
+  update({tours, Ls}) {
+    const n = this.n, {variant, rho, Q} = this.o, tau = this.tau;
+    let ib = 0; for (let k = 1; k < Ls.length; k++) if (Ls[k] < Ls[ib]) ib = k;
+    if (Ls[ib] < this.bestL - 1e-9) { this.bestL = Ls[ib]; this.best = Int32Array.from(tours[ib]); this.since = 0; } else this.since++;
+    if (variant === 'AS') {
+      for (let i = 0; i < n * n; i++) tau[i] *= 1 - rho;
+      tours.forEach((t, k) => this.deposit(t, Q / Ls[k]));
+    } else if (variant === 'MMAS') {
+      for (let i = 0; i < n * n; i++) tau[i] *= 1 - rho;
+      const useBs = this.it % 10 === 9;
+      this.deposit(useBs ? this.best : tours[ib], 1 / (useBs ? this.bestL : Ls[ib]));
+      this.tmax = 1 / (rho * this.bestL); this.tmin = this.tmax / (2 * n);
+      for (let i = 0; i < n * n; i++) tau[i] = clamp(tau[i], this.tmin, this.tmax);
+      if (this.since > 250) { tau.fill(this.tmax); this.since = 0; }
+    } else {
+      const t = this.best;
+      for (let k = 0; k < n; k++) { const a = t[k], b = t[(k + 1) % n]; const v = (1 - rho) * tau[a * n + b] + rho / this.bestL; tau[a * n + b] = tau[b * n + a] = v; }
+    }
+    this.it++; this.hist.push(this.bestL); this.histIb.push(Ls[ib]);
+  }
+  iterate() { const r = this.construct(); this.update(r); return r; }
+  maxTau() { let m = 0; for (let i = 0; i < this.tau.length; i++) if (this.tau[i] > m) m = this.tau[i]; return m; }
+}
+function drawPher(ctx, A, maxW = 6, gamma = 1.4, alphaK = 0.9) {
+  const n = A.n, P = A.pts, mx = A.maxTau();
+  let mn = Infinity; for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) mn = Math.min(mn, A.tau[i * n + j]);
+  if (!(mx - mn > mx * 1e-6)) return;
+  ctx.lineCap = 'round';
+  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+    const v = (A.tau[i * n + j] - mn) / (mx - mn); if (v < 0.03) continue;
+    ctx.strokeStyle = rgba(PAL.amber, Math.pow(v, gamma) * alphaK); ctx.lineWidth = 0.5 + maxW * v;
+    ctx.beginPath(); ctx.moveTo(P[i][0], P[i][1]); ctx.lineTo(P[j][0], P[j][1]); ctx.stroke();
+  }
+}
+function drawTour(ctx, P, t, color, width = 2.5) {
+  if (!t) return; ctx.strokeStyle = color; ctx.lineWidth = width; ctx.lineJoin = 'round'; ctx.beginPath();
+  for (let k = 0; k <= t.length; k++) { const p = P[t[k % t.length]]; k ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]); }
+  ctx.stroke();
+}
+function drawCities(ctx, P, r = 4.5) { ctx.fillStyle = PAL.surface2; ctx.strokeStyle = PAL.text; ctx.lineWidth = 1.5; P.forEach(p => { circle(ctx, p[0], p[1], r); ctx.fill(); ctx.stroke(); }); }
+
+/* ---------- simulaciones ---------- */
+const SIM = {};
+
+function Forage(cv, o) {
+  const {ctx, w, h} = cvs(cv);
+  const G = o.G || 4, gw = Math.ceil(w / G), gh = Math.ceil(h / G), N = gw * gh;
+  const fF = new Float32Array(N), fH = new Float32Array(N);
+  const off = document.createElement('canvas'); off.width = gw; off.height = gh;
+  const octx = off.getContext('2d'), img = octx.createImageData(gw, gh);
+  let nest, foods, ants; const st = {delivered: 0};
+  const newFood = (x, y) => ({x, y, r: o.foodR || 20, amt: o.foodAmt || 500, max: o.foodAmt || 500});
+  function reset() {
+    fF.fill(0); fH.fill(0); st.delivered = 0;
+    nest = {x: o.nest[0], y: o.nest[1], r: o.nestR || 24};
+    foods = o.foods.map(f => newFood(f[0], f[1]));
+    ants = []; for (let i = 0; i < o.ants; i++) ants.push({x: nest.x, y: nest.y, a: Math.random() * 6.283, c: false, t: 0});
+  }
+  const at = (x, y) => { const gx = x / G | 0, gy = y / G | 0; return (gx < 0 || gy < 0 || gx >= gw || gy >= gh) ? -1 : gy * gw + gx; };
+  const sense = (F, x, y) => { const i = at(x, y); return i < 0 ? -1 : F[i]; };
+  function step() {
+    const SD = 15, SA = 0.6, sp = o.speed || 1.4, life = o.life || 520;
+    for (const a of ants) {
+      const F = a.c ? fH : fF;
+      const l = sense(F, a.x + Math.cos(a.a - SA) * SD, a.y + Math.sin(a.a - SA) * SD);
+      const c = sense(F, a.x + Math.cos(a.a) * SD, a.y + Math.sin(a.a) * SD);
+      const r = sense(F, a.x + Math.cos(a.a + SA) * SD, a.y + Math.sin(a.a + SA) * SD);
+      if (!(c >= l && c >= r)) a.a += l > r ? -0.35 : 0.35;
+      a.a += (Math.random() - 0.5) * 0.45;
+      const targets = a.c ? [nest] : foods;
+      for (const t of targets) {
+        const dx = t.x - a.x, dy = t.y - a.y, d = Math.hypot(dx, dy);
+        if (d < t.r + 28) a.a = Math.atan2(dy, dx);
+        if (d < t.r) { if (a.c) { a.c = false; st.delivered++; } else { a.c = true; t.amt--; } a.a += Math.PI; a.t = 0; break; }
+      }
+      if (!a.c && Math.hypot(nest.x - a.x, nest.y - a.y) < nest.r) a.t = 0;
+      a.x += Math.cos(a.a) * sp; a.y += Math.sin(a.a) * sp;
+      if (a.x < 3 || a.x > w - 3) { a.a = Math.PI - a.a; a.x = clamp(a.x, 3, w - 3); }
+      if (a.y < 3 || a.y > h - 3) { a.a = -a.a; a.y = clamp(a.y, 3, h - 3); }
+      a.t++;
+      const dep = 1 - a.t / life;
+      if (dep > 0) { const i = at(a.x, a.y); if (i >= 0) { const D = a.c ? fF : fH; D[i] = Math.min(4, D[i] + dep * 0.22); } }
+    }
+    const ev = o.evap || 0.986;
+    for (let i = 0; i < N; i++) { fF[i] *= ev; fH[i] *= ev; }
+    for (let k = foods.length - 1; k >= 0; k--) if (foods[k].amt <= 0) {
+      if (o.respawn) foods[k] = newFood(o.respawn[0] + Math.random() * o.respawn[2], o.respawn[1] + Math.random() * o.respawn[3]); else foods.splice(k, 1);
+    }
+  }
+  function draw() {
+    const B = hex(PAL.bg), A = hex(PAL.amber), T = hex(PAL.teal), d = img.data, hv = o.homeVis ?? 0.3;
+    for (let i = 0, p = 0; i < N; i++, p += 4) {
+      const f = Math.min(1, fF[i] * 0.9), g = Math.min(1, fH[i] * 0.9) * hv * (1 - f);
+      d[p] = B[0] + (A[0] - B[0]) * f + (T[0] - B[0]) * g; d[p + 1] = B[1] + (A[1] - B[1]) * f + (T[1] - B[1]) * g; d[p + 2] = B[2] + (A[2] - B[2]) * f + (T[2] - B[2]) * g; d[p + 3] = 255;
+    }
+    octx.putImageData(img, 0, 0); ctx.imageSmoothingEnabled = true; ctx.drawImage(off, 0, 0, w, h);
+    for (const f of foods) { ctx.fillStyle = rgba(PAL.green, 0.85); circle(ctx, f.x, f.y, f.r * (0.45 + 0.55 * f.amt / f.max)); ctx.fill(); }
+    ctx.fillStyle = PAL.surface2; ctx.strokeStyle = PAL.muted; ctx.lineWidth = 2; circle(ctx, nest.x, nest.y, nest.r); ctx.fill(); ctx.stroke();
+    if (o.labels) { text(ctx, 'Nido', nest.x, nest.y + nest.r + 18, {align: 'center', size: 15, color: PAL.muted}); foods.forEach(f => text(ctx, 'Comida', f.x, f.y - f.r - 8, {align: 'center', size: 15, color: PAL.green})); }
+    for (const a of ants) { ctx.fillStyle = a.c ? PAL.amber : PAL.text; ctx.fillRect(a.x - 1.4, a.y - 1.4, 2.8, 2.8); }
+  }
+  reset();
+  return {reset, st, clear() { fF.fill(0); fH.fill(0); }, add(x, y) { foods.push(newFood(x, y)); }, frame() { step(); step(); draw(); }};
+}
+
+SIM['forage-bg'] = s => {
+  const F = Forage($('.bgcv', s), {nest: [1230, 560], nestR: 26, foods: [[1460, 170], [1480, 800], [930, 800]], ants: 420, G: 5, life: 700, evap: 0.988, homeVis: 0.12, respawn: [900, 120, 620, 700], foodAmt: 700});
+  let warm = false;
+  return {enter() { if (!warm) { for (let i = 0; i < 260; i++) F.frame(); warm = true; } }, frame() { F.frame(); }};
+};
+
+SIM.forage = s => {
+  const cv = $('.cv', s);
+  const F = Forage(cv, {nest: [150, 390], nestR: 26, foods: [[600, 150]], ants: 360, labels: true, foodAmt: 5000});
+  $('.reset', s).onclick = () => F.reset();
+  $('.clear', s).onclick = () => F.clear();
+  cv.addEventListener('click', e => { const [x, y] = evtPos(e, cv); F.add(x, y); });
+  const out = $('.delivered', s);
+  return {frame() { F.frame(); F.frame(); out.textContent = F.st.delivered; }};
+};
+
+function Bridge(s, unequal) {
+  const c = cvs($('.cv', s)), {ctx, w, h} = c;
+  const cy = h / 2 + (unequal ? -40 : 0), NX = 60, AX = 190, BX = w - 190, FX = w - 60;
+  function sample(fn) { const pts = []; for (let i = 0; i <= 160; i++) pts.push(fn(i / 160)); const cum = [0]; for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1])); return {pts, cum, len: cum[cum.length - 1]}; }
+  function posOn(P, u) { let lo = 0, hi = P.cum.length - 1; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (P.cum[m] < u) lo = m; else hi = m; } const t = (u - P.cum[lo]) / ((P.cum[hi] - P.cum[lo]) || 1); return [lerp(P.pts[lo][0], P.pts[hi][0], t), lerp(P.pts[lo][1], P.pts[hi][1], t)]; }
+  const trL = sample(t => [lerp(NX, AX, t), cy]), trR = sample(t => [lerp(BX, FX, t), cy]);
+  const mx = (AX + BX) / 2, hw = (BX - AX) / 2, sgn = x => x < 0 ? -1 : 1;
+  const br = unequal
+    ? [sample(t => [lerp(AX, BX, t), cy - Math.sin(Math.PI * t) * 50]),
+       sample(t => { const a = Math.PI * t, cs = Math.cos(a), sn = Math.sin(a); return [mx - hw * sgn(cs) * Math.pow(Math.abs(cs), 0.35), cy + 210 * Math.pow(sn, 0.35)]; })]
+    : [sample(t => [lerp(AX, BX, t), cy - Math.sin(Math.PI * t) * 130]), sample(t => [lerp(AX, BX, t), cy + Math.sin(Math.PI * t) * 130])];
+  const names = unequal ? ['Corta', 'Larga'] : ['Arriba', 'Abajo'];
+  const K = 20, HH = 2, MAXA = 110, SPEED = 170;
+  const choose = phi => { const a = Math.pow(phi[0] + K, HH), b = Math.pow(phi[1] + K, HH); return Math.random() < a / (a + b) ? 0 : 1; };
+  const segLen = (sg, b) => sg === 0 ? trL.len : sg === 1 ? br[b].len : trR.len;
+  const newState = () => ({phi: [0, 0], ants: [], spawnT: 0, spawned: 0, hist: [], ht: 0});
+  function stepState(S, dt) {
+    S.spawnT += dt; while (S.spawnT > 0.1 && S.spawned < MAXA) { S.spawnT -= 0.1; S.spawned++; S.ants.push({sg: 0, b: 0, u: 0, dir: 1}); }
+    for (const a of S.ants) {
+      a.u += SPEED * dt;
+      while (a.u >= segLen(a.sg, a.b)) {
+        a.u -= segLen(a.sg, a.b);
+        if (a.sg === 1) S.phi[a.b]++;
+        let ns = a.sg + a.dir;
+        if (ns > 2) { a.dir = -1; ns = 2; } else if (ns < 0) { a.dir = 1; ns = 0; }
+        if (ns === 1) a.b = choose(S.phi);
+        a.sg = ns;
+      }
+    }
+  }
+  let S = newState(), tally = [0, 0];
+  const tallyEl = $('.tally', s);
+  const showTally = () => { const tot = tally[0] + tally[1]; tallyEl.innerHTML = tot ? `Ganó <b>${names[0].toLowerCase()}</b>: ${tally[0]} · <b>${names[1].toLowerCase()}</b>: ${tally[1]}` : ''; };
+  $('.reset', s).onclick = () => { S = newState(); };
+  $('.many', s).onclick = () => {
+    for (let r = 0; r < 50; r++) { const T = newState(); let t = 0; while (T.phi[0] + T.phi[1] < 700 && t < 400) { stepState(T, 0.05); t += 0.05; } tally[T.phi[0] >= T.phi[1] ? 0 : 1]++; }
+    showTally();
+  };
+  function drawPath(P, color, width) { ctx.strokeStyle = color; ctx.lineWidth = width; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath(); P.pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.stroke(); }
+  return {
+    frame(dt) {
+      stepState(S, dt);
+      S.ht += dt; if (S.ht > 0.25) { S.ht = 0; const tot = S.phi[0] + S.phi[1]; S.hist.push(tot ? S.phi[0] / tot : 0.5); if (S.hist.length > 240) S.hist.shift(); }
+      ctx.clearRect(0, 0, w, h);
+      [trL, trR, br[0], br[1]].forEach(P => drawPath(P, PAL.surface2, 26));
+      const tot = S.phi[0] + S.phi[1], sh = [(S.phi[0] + 1) / (tot + 2), (S.phi[1] + 1) / (tot + 2)];
+      [trL, trR].forEach(P => drawPath(P, rgba(PAL.amber, 0.55), 10));
+      br.forEach((P, b) => drawPath(P, rgba(PAL.amber, 0.15 + 0.85 * sh[b]), 3 + 20 * sh[b]));
+      ctx.fillStyle = PAL.text;
+      for (const a of S.ants) { const P = a.sg === 0 ? trL : a.sg === 1 ? br[a.b] : trR; const L = P.len; const p = posOn(P, a.dir > 0 ? a.u : L - a.u); ctx.fillRect(p[0] - 2, p[1] - 2, 4, 4); }
+      ctx.fillStyle = PAL.surface2; ctx.strokeStyle = PAL.muted; ctx.lineWidth = 2; circle(ctx, NX, cy, 26); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = rgba(PAL.green, 0.85); circle(ctx, FX, cy, 24); ctx.fill();
+      text(ctx, 'Nido', NX, cy + 48, {align: 'center', size: 16, color: PAL.muted});
+      text(ctx, 'Comida', FX, cy + 48, {align: 'center', size: 16, color: PAL.green});
+      br.forEach((P, b) => { const mid = P.pts[80]; const yy = b === 0 ? mid[1] - 26 : unequal ? mid[1] - 22 : mid[1] + 40; text(ctx, `${names[b]} ${(100 * (tot ? S.phi[b] / tot : 0.5)).toFixed(0)}%`, mid[0], yy, {align: 'center', size: 19, weight: 600, color: b === 0 ? PAL.amber : PAL.text}); });
+      // gráfica de la proporción en la rama 1
+      const gx = 16, gy = 14, gw = 210, gh = 56;
+      ctx.fillStyle = rgba(PAL.surface2, 0.9); ctx.fillRect(gx, gy, gw, gh);
+      ctx.strokeStyle = PAL.line; ctx.beginPath(); ctx.moveTo(gx, gy + gh / 2); ctx.lineTo(gx + gw, gy + gh / 2); ctx.stroke();
+      ctx.strokeStyle = PAL.amber; ctx.lineWidth = 2; ctx.beginPath(); S.hist.forEach((v, i) => { const x = gx + gw * i / 240, y = gy + gh * (1 - v); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke();
+      text(ctx, `feromona en "${names[0].toLowerCase()}"`, gx + 6, gy + 14, {size: 11, color: PAL.muted});
+    }
+  };
+}
+SIM['bridge-diff'] = s => Bridge(s, true);
+
+SIM.explosion = s => {
+  const c = cvs($('.cv', s)), {ctx, w, h} = c, P0 = randomCities(60, w, h, 26, rng(11)), P = [P0.shift()];
+  while (P0.length) { let bi = 0, bd = -1; P0.forEach((q, i) => { const d = Math.min(...P.map(p => Math.hypot(p[0] - q[0], p[1] - q[1]))); if (d > bd) { bd = d; bi = i; } }); P.push(P0.splice(bi, 1)[0]); }
+  let n = 8, tour = [], tt = 0;
+  const fact = k => { let r = 1n; for (let i = 2n; i <= BigInt(k); i++) r *= i; return r; };
+  function fmtTime(sec) {
+    if (sec < 1e-3) return 'menos de 1 milisegundo';
+    if (sec < 1) return (sec * 1000).toFixed(1) + ' ms';
+    if (sec < 60) return sec.toFixed(1) + ' segundos';
+    if (sec < 3600) return (sec / 60).toFixed(1) + ' minutos';
+    if (sec < 86400) return (sec / 3600).toFixed(1) + ' horas';
+    const y = sec / 31557600;
+    if (y < 1) return (sec / 86400).toFixed(1) + ' días';
+    if (y < 10) return y.toFixed(1) + ' años';
+    if (y < 1e5) return grp(Math.round(y)) + ' años';
+    return sci(y, 1) + ' años' + (y > 1.38e10 ? ' (más que la edad del universo)' : '');
+  }
+  const newTour = () => { tour = [...Array(n).keys()].sort(() => Math.random() - 0.5); };
+  bindRange(s, 'n', v => v, v => {
+    n = v; newTour();
+    const r = fact(n - 1) / 2n, str = r.toString();
+    $('.nout', s).textContent = n;
+    $('.routes', s).textContent = str.length <= 13 ? grp(str) : `${str[0]}.${str.slice(1, 3)} × 10${String(str.length - 1).split('').map(d => SUP[d]).join('')}`;
+    $('.time', s).textContent = fmtTime(Number(r) / 1e9);
+  });
+  return {
+    frame(dt) {
+      tt += dt; if (tt > 0.7) { tt = 0; newTour(); }
+      ctx.clearRect(0, 0, w, h);
+      ctx.strokeStyle = rgba(PAL.amber, Math.min(0.45, 5 / n)); ctx.lineWidth = 1;
+      ctx.beginPath(); for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) { ctx.moveTo(P[i][0], P[i][1]); ctx.lineTo(P[j][0], P[j][1]); } ctx.stroke();
+      drawTour(ctx, P, tour, PAL.coral, 2.5);
+      drawCities(ctx, P.slice(0, n), 5);
+      text(ctx, 'una ruta al azar entre todas las posibles', 14, h - 14, {size: 14, color: PAL.coral});
+    }
+  };
+};
+
+SIM.walk = s => {
+  const c = cvs($('.cv', s)), {ctx, w, h} = c, P = randomCities(7, w, h, 70, rng(5)), N = 7, lab = 'ABCDEFG';
+  const mem = $('.mem', s), lenEl = $('.len', s);
+  const D = (a, b) => Math.hypot(P[a][0] - P[b][0], P[a][1] - P[b][1]) / 60;
+  let tour, ph, t, cand, probs, next;
+  function restart() { tour = [Math.random() * N | 0]; ph = 'show'; t = 0; computeCand(); renderMem(); lenEl.textContent = '—'; }
+  function computeCand() { const i = tour[tour.length - 1]; cand = [...Array(N).keys()].filter(j => !tour.includes(j)); const wts = cand.map(j => Math.pow(1 / D(i, j), 2)); const S = wts.reduce((a, b) => a + b, 0); probs = wts.map(x => x / S); }
+  function renderMem() { mem.innerHTML = tour.map((c, k) => `<span class="chip ${k === tour.length - 1 ? 'new' : ''}">${lab[c]}</span>`).join(''); }
+  function L() { let s = 0; for (let k = 0; k < tour.length; k++) s += D(tour[k], tour[(k + 1) % tour.length]); return s; }
+  restart();
+  return {
+    enter() { restart(); },
+    frame(dt) {
+      t += dt;
+      if (ph === 'show' && t > 1.1) {
+        if (cand.length) { let r = Math.random(), k = 0; while (k < cand.length - 1 && (r -= probs[k]) > 0) k++; next = cand[k]; } else next = tour[0];
+        ph = 'move'; t = 0;
+      } else if (ph === 'move' && t > 0.7) {
+        if (next === tour[0] && tour.length === N) { ph = 'done'; t = 0; lenEl.textContent = L().toFixed(1); }
+        else { tour.push(next); renderMem(); computeCand(); ph = 'show'; t = 0; }
+      } else if (ph === 'done' && t > 2.6) restart();
+      ctx.clearRect(0, 0, w, h);
+      ctx.strokeStyle = PAL.line; ctx.lineWidth = 1;
+      ctx.beginPath(); for (let i = 0; i < N; i++) for (let j = i + 1; j < N; j++) { ctx.moveTo(P[i][0], P[i][1]); ctx.lineTo(P[j][0], P[j][1]); } ctx.stroke();
+      const i = tour[tour.length - 1];
+      if (ph === 'show' && cand.length) {
+        cand.forEach((j, k) => {
+          ctx.setLineDash([7, 7]); ctx.strokeStyle = rgba(PAL.teal, 0.4 + 0.6 * probs[k]); ctx.lineWidth = 1.5 + 5 * probs[k];
+          ctx.beginPath(); ctx.moveTo(P[i][0], P[i][1]); ctx.lineTo(P[j][0], P[j][1]); ctx.stroke(); ctx.setLineDash([]);
+          const mx = lerp(P[i][0], P[j][0], 0.55), my = lerp(P[i][1], P[j][1], 0.55);
+          ctx.fillStyle = PAL.bg; ctx.fillRect(mx - 26, my - 13, 52, 24);
+          text(ctx, (100 * probs[k]).toFixed(0) + '%', mx, my, {align: 'center', base: 'middle', size: 15, color: PAL.teal, font: 'mono', weight: 600});
+        });
+      }
+      ctx.strokeStyle = PAL.coral; ctx.lineWidth = 3.5; ctx.lineCap = 'round'; ctx.beginPath();
+      tour.forEach((c, k) => k ? ctx.lineTo(P[c][0], P[c][1]) : ctx.moveTo(P[c][0], P[c][1]));
+      if (ph === 'done') ctx.lineTo(P[tour[0]][0], P[tour[0]][1]);
+      ctx.stroke();
+      let ax = P[i][0], ay = P[i][1];
+      if (ph === 'move') { const e = ease(t / 0.7); ax = lerp(P[i][0], P[next][0], e); ay = lerp(P[i][1], P[next][1], e); ctx.beginPath(); ctx.moveTo(P[i][0], P[i][1]); ctx.lineTo(ax, ay); ctx.stroke(); }
+      P.forEach((p, k) => { const v = tour.includes(k); ctx.fillStyle = v ? PAL.surface2 : PAL.surface; ctx.strokeStyle = v ? PAL.coral : PAL.text; ctx.lineWidth = 2; circle(ctx, p[0], p[1], 20); ctx.fill(); ctx.stroke(); text(ctx, lab[k], p[0], p[1] + 1, {align: 'center', base: 'middle', size: 18, weight: 600}); });
+      if (ph === 'move') { ctx.fillStyle = rgba(PAL.amber, 0.35); circle(ctx, ax, ay, 14); ctx.fill(); ctx.fillStyle = PAL.amber; circle(ctx, ax, ay, 7); ctx.fill(); }
+      else { ctx.strokeStyle = PAL.amber; ctx.lineWidth = 4; circle(ctx, ax, ay, 27); ctx.stroke(); }
+    }
+  };
+};
+
+SIM.loop = s => {
+  const gs = $$('.ph', s), ls = $$('.ln.pl', s), pre = $('pre', s); let t = 0, ph = -1;
+  const set = p => { gs.forEach(g => g.classList.toggle('act', +g.dataset.ph === p)); ls.forEach(l => l.classList.toggle('hl', +l.dataset.p === p)); pre.classList.add('focus'); };
+  return {enter() { t = 0; ph = -1; set(-1); }, frame(dt) { t += dt; if (t > 1.6) { t = 0; ph = ph >= 3 ? 0 : ph + 1; set(ph); } }};
+};
+
+SIM.roulette = s => {
+  const g = cvs($('.gcv', s)), wv = cvs($('.wcv', s)), tbody = $('.ptab tbody', s);
+  const I = {x: 110, y: 150}, V = {n: 'F', x: 610, y: 252};
+  const C = [{n: 'B', x: 330, y: 55, tau: 1.0}, {n: 'C', x: 430, y: 175, tau: 2.6}, {n: 'D', x: 300, y: 262, tau: 0.5}, {n: 'E', x: 650, y: 105, tau: 1.6}];
+  C.forEach(c => c.d = +(Math.hypot(c.x - I.x, c.y - I.y) / 100).toFixed(1));
+  const cols = () => [PAL.coral, PAL.amber, PAL.teal, PAL.violet];
+  let al = 1, be = 2, W = [], Pp = [], rot = 0, spin = null, chosen = -1, tally = [0, 0, 0, 0];
+  function recompute() { W = C.map(c => Math.pow(c.tau, al) * Math.pow(1 / c.d, be)); const S = W.reduce((a, b) => a + b, 0); Pp = W.map(x => x / S); table(); }
+  function table() {
+    const tot = tally.reduce((a, b) => a + b, 0), cl = cols();
+    tbody.innerHTML = C.map((c, i) => `<tr class="${i === chosen ? 'hl' : ''}"><td><b style="color:${cl[i]}">${c.n}</b></td><td class="num">${c.tau.toFixed(1)}</td><td class="num">${c.d.toFixed(1)}</td><td class="num">${W[i].toFixed(3)}</td><td class="num">${Pp[i].toFixed(3)}</td><td class="num">${tally[i]}${tot ? ` (${(100 * tally[i] / tot).toFixed(0)}%)` : ''}</td></tr>`).join('');
+  }
+  const pick = () => { let r = Math.random(); for (let i = 0; i < 4; i++) { r -= Pp[i]; if (r <= 0) return i; } return 3; };
+  const startOf = k => { let a = 0; for (let i = 0; i < k; i++) a += Pp[i]; return a * Math.PI * 2; };
+  function targetRot(k) { const a = startOf(k) + (0.2 + 0.6 * Math.random()) * Pp[k] * Math.PI * 2; let t = -Math.PI / 2 - a; while (t < rot + Math.PI * 8) t += Math.PI * 2; return t; }
+  bindRange(s, 'al', v => v.toFixed(1), v => { al = v; recompute(); });
+  bindRange(s, 'be', v => v.toFixed(1), v => { be = v; recompute(); });
+  $('.spin', s).onclick = () => { if (spin) return; const k = pick(); chosen = -1; table(); spin = {from: rot, to: targetRot(k), t: 0, k}; };
+  $('.spin100', s).onclick = () => { if (spin) return; let k = 0; for (let i = 0; i < 200; i++) { k = pick(); tally[k]++; } chosen = k; rot = targetRot(k) % (Math.PI * 2); table(); };
+  $('.rst', s).onclick = () => { tally = [0, 0, 0, 0]; chosen = -1; table(); };
+  return {
+    frame(dt) {
+      if (spin) { spin.t += dt; rot = lerp(spin.from, spin.to, ease(spin.t / 2.4)); if (spin.t >= 2.4) { chosen = spin.k; tally[spin.k]++; table(); spin = null; } }
+      const cl = cols();
+      // grafo
+      let {ctx, w, h} = g; ctx.clearRect(0, 0, w, h);
+      ctx.setLineDash([4, 6]); ctx.strokeStyle = PAL.faint; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(I.x, I.y); ctx.lineTo(V.x, V.y); ctx.stroke(); ctx.setLineDash([]);
+      C.forEach((c, i) => {
+        if (i === chosen) { ctx.strokeStyle = cl[i]; ctx.lineWidth = 6 + c.tau * 5; ctx.beginPath(); ctx.moveTo(I.x, I.y); ctx.lineTo(c.x, c.y); ctx.stroke(); }
+        ctx.strokeStyle = rgba(PAL.amber, 0.8); ctx.lineWidth = 1.5 + c.tau * 4; ctx.beginPath(); ctx.moveTo(I.x, I.y); ctx.lineTo(c.x, c.y); ctx.stroke();
+        const mx = lerp(I.x, c.x, 0.5), my = lerp(I.y, c.y, 0.5); ctx.fillStyle = PAL.surface; ctx.fillRect(mx - 24, my - 12, 48, 24);
+        text(ctx, 'd=' + c.d.toFixed(1), mx, my + 1, {align: 'center', base: 'middle', size: 13, color: PAL.teal, font: 'mono'});
+      });
+      C.forEach((c, i) => { ctx.fillStyle = PAL.surface2; ctx.strokeStyle = cl[i]; ctx.lineWidth = 3; circle(ctx, c.x, c.y, 20); ctx.fill(); ctx.stroke(); text(ctx, c.n, c.x, c.y + 1, {align: 'center', base: 'middle', size: 17, weight: 600}); });
+      ctx.fillStyle = PAL.surface; ctx.strokeStyle = PAL.faint; ctx.lineWidth = 2; circle(ctx, V.x, V.y, 18); ctx.fill(); ctx.stroke(); text(ctx, V.n, V.x, V.y + 1, {align: 'center', base: 'middle', size: 16, color: PAL.faint});
+      text(ctx, 'ya visitada', V.x + 26, V.y + 5, {size: 13, color: PAL.faint});
+      ctx.fillStyle = PAL.amber; circle(ctx, I.x, I.y, 22); ctx.fill(); text(ctx, 'i', I.x, I.y + 1, {align: 'center', base: 'middle', size: 20, weight: 600, color: '#1a1206'});
+      text(ctx, 'hormiga aquí', I.x, I.y + 42, {align: 'center', size: 13, color: PAL.muted});
+      // ruleta
+      ({ctx, w, h} = wv); ctx.clearRect(0, 0, w, h);
+      const cx = w / 2, cy = h / 2 + 12, R = 160; let a0 = rot;
+      C.forEach((c, i) => {
+        const a1 = a0 + Pp[i] * Math.PI * 2;
+        ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, R, a0, a1); ctx.closePath();
+        ctx.fillStyle = rgba(cl[i], i === chosen ? 1 : 0.78); ctx.fill(); ctx.strokeStyle = PAL.bg; ctx.lineWidth = 3; ctx.stroke();
+        if (Pp[i] > 0.04) { const am = (a0 + a1) / 2; text(ctx, c.n, cx + Math.cos(am) * R * 0.66, cy + Math.sin(am) * R * 0.66 - 9, {align: 'center', base: 'middle', size: 20, weight: 600, color: '#15100a'}); text(ctx, (100 * Pp[i]).toFixed(0) + '%', cx + Math.cos(am) * R * 0.66, cy + Math.sin(am) * R * 0.66 + 13, {align: 'center', base: 'middle', size: 14, color: '#15100a', font: 'mono'}); }
+        a0 = a1;
+      });
+      ctx.fillStyle = PAL.bg; circle(ctx, cx, cy, 22); ctx.fill();
+      ctx.fillStyle = PAL.text; ctx.beginPath(); ctx.moveTo(cx - 14, cy - R - 22); ctx.lineTo(cx + 14, cy - R - 22); ctx.lineTo(cx, cy - R + 6); ctx.closePath(); ctx.fill();
+    }
+  };
+};
+
+SIM.update = s => {
+  const c = cvs($('.cv', s)), {ctx, w, h} = c, rho = 0.5, Q = 10;
+  const P = [[120, 110], [390, 60], [660, 130], [700, 390], [400, 465], [100, 380]], n = 6;
+  const D = (a, b) => Math.hypot(P[a][0] - P[b][0], P[a][1] - P[b][1]) / 100;
+  const E = []; for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) E.push([i, j]);
+  const ants = [[0, 1, 2, 3, 4, 5], [0, 1, 4, 2, 3, 5], [0, 2, 5, 1, 3, 4]].map(t => ({t, L: t.reduce((s, a, k) => s + D(a, t[(k + 1) % n]), 0)}));
+  ants.forEach(a => a.dep = Q / a.L);
+  const antCol = () => [PAL.coral, PAL.violet, PAL.teal];
+  const key = (a, b) => a < b ? a + ',' + b : b + ',' + a;
+  const init = {}; E.forEach(([i, j]) => { const per = Math.abs(i - j) === 1 || Math.abs(i - j) === 5; init[key(i, j)] = per ? 1.3 : 0.5 + ((i * 7 + j * 3) % 5) * 0.12; });
+  function target(k) { const T = {...init}; if (k >= 1) for (const e in T) T[e] *= 1 - rho; for (let a = 0; a < k - 1; a++) { const t = ants[a].t; for (let q = 0; q < n; q++) T[key(t[q], t[(q + 1) % n])] += ants[a].dep; } return T; }
+  let k = 0, disp = {...init}, tt = 0;
+  const msg = $('.upd-msg', s), leg = $('.upd-leg', s);
+  function texts() {
+    const m = ['Feromona al terminar la iteración anterior. El grosor de cada arista es su τ.',
+      `<b class="teal">Evaporación:</b> todas las aristas se multiplican por (1 − ρ) = ${1 - rho}.`];
+    ants.forEach((a, i) => m.push(`<b style="color:${antCol()[i]}">Hormiga ${i + 1}:</b> L = ${a.L.toFixed(2)} → deposita Q/L = 10/${a.L.toFixed(2)} = <b>${a.dep.toFixed(2)}</b> en cada arista de su ruta.`));
+    msg.innerHTML = m[k];
+    leg.innerHTML = ants.map((a, i) => `<span style="opacity:${k >= i + 2 ? 1 : 0.4}"><i style="background:${antCol()[i]}"></i>Hormiga ${i + 1} · L = ${a.L.toFixed(2)}</span>`).join('');
+    $('.evap', s).classList.toggle('m-teal', k === 1); $('.dep', s).classList.toggle('m-coral', k >= 2);
+  }
+  texts();
+  return {
+    step(kk) { k = kk; tt = 0; texts(); },
+    frame(dt) {
+      tt += dt; const T = target(k);
+      for (const e in disp) disp[e] += (T[e] - disp[e]) * Math.min(1, dt * 5);
+      ctx.clearRect(0, 0, w, h);
+      const order = E.slice().sort((a, b) => disp[key(...a)] - disp[key(...b)]);
+      ctx.lineCap = 'round';
+      order.forEach(([i, j]) => { const v = disp[key(i, j)]; ctx.strokeStyle = rgba(PAL.amber, 0.2 + 0.7 * Math.min(1, v / 2.2)); ctx.lineWidth = 1 + v * 6; ctx.beginPath(); ctx.moveTo(P[i][0], P[i][1]); ctx.lineTo(P[j][0], P[j][1]); ctx.stroke(); });
+      if (k >= 2) {
+        const a = ants[k - 2], col = antCol()[k - 2]; ctx.setLineDash([10, 8]); drawTour(ctx, P, a.t, col, 2.5); ctx.setLineDash([]);
+        const prog = Math.min(n, tt / 1.8 * n), e = Math.floor(prog), f = prog - e;
+        if (e < n) { const p0 = P[a.t[e]], p1 = P[a.t[(e + 1) % n]]; ctx.fillStyle = col; circle(ctx, lerp(p0[0], p1[0], f), lerp(p0[1], p1[1], f), 9); ctx.fill(); }
+        for (let q = 0; q < n; q++) { const p0 = P[a.t[q]], p1 = P[a.t[(q + 1) % n]], mx = (p0[0] + p1[0]) / 2, my = (p0[1] + p1[1]) / 2; ctx.fillStyle = PAL.surface; ctx.fillRect(mx - 28, my - 13, 56, 24); text(ctx, '+' + a.dep.toFixed(2), mx, my, {align: 'center', base: 'middle', size: 14, color: col, font: 'mono', weight: 600}); }
+      }
+      if (k === 1) text(ctx, '× (1 − ρ)', w / 2, h / 2, {align: 'center', base: 'middle', size: 34, weight: 600, color: rgba(PAL.teal, 0.6 + 0.4 * Math.sin(tt * 4))});
+      P.forEach((p, i) => { ctx.fillStyle = PAL.surface2; ctx.strokeStyle = PAL.text; ctx.lineWidth = 2; circle(ctx, p[0], p[1], 19); ctx.fill(); ctx.stroke(); text(ctx, String(i + 1), p[0], p[1] + 1, {align: 'center', base: 'middle', size: 17, weight: 600}); });
+    }
+  };
+};
+
+SIM.demo = s => {
+  const c = cvs($('.cv', s)), ch = cvs($('.ch', s)), {ctx, w, h} = c;
+  let pts, A, running = false, anim = null, n = 30;
+  const REC = {AS: {rho: 0.5, m: null}, MMAS: {rho: 0.02, m: null}, ACS: {rho: 0.1, m: 10}};
+  const params = () => ({variant: $('.variant', s).value, m: +$('.m', s).value, alpha: +$('.al', s).value, beta: +$('.be', s).value, rho: +$('.rho', s).value, q0: +$('.q0', s).value});
+  const make = () => { A = new ACO(pts, params()); anim = null; };
+  const newCities = () => { pts = randomCities(n, w, h, 30); make(); };
+  const live = () => { if (A) Object.assign(A.o, params()); };
+  bindRange(s, 'n', v => v, v => { n = v; });
+  $('.n', s).addEventListener('change', () => newCities());
+  bindRange(s, 'm', v => v, live); bindRange(s, 'al', v => v.toFixed(1), live); bindRange(s, 'be', v => v.toFixed(1), live);
+  bindRange(s, 'rho', v => v.toFixed(2), live); bindRange(s, 'q0', v => v.toFixed(2), live);
+  const SPD = ['', 'lenta', 'normal', 'rápida', 'muy rápida', 'máxima'];
+  bindRange(s, 'spd', v => SPD[v]);
+  const syncVariant = () => {
+    const v = $('.variant', s).value; $('.q0row', s).style.display = v === 'ACS' ? '' : 'none'; $('.al', s).disabled = v === 'ACS';
+    setRange(s, 'rho', REC[v].rho); setRange(s, 'm', REC[v].m || Math.min(n, 60));
+  };
+  $('.variant', s).addEventListener('change', () => { syncVariant(); make(); });
+  syncVariant();
+  const play = $('.play', s);
+  play.onclick = () => { running = !running; play.textContent = running ? 'Pausa' : 'Continuar'; };
+  $('.reset', s).onclick = () => make();
+  $('.newc', s).onclick = () => newCities();
+  c.cv.addEventListener('click', e => { const p = evtPos(e, c.cv); pts = pts.concat([p]); n = pts.length; $('.o-n', s).textContent = n; make(); });
+  newCities();
+  return {
+    leave() { running = false; play.textContent = A.it ? 'Continuar' : 'Iniciar'; },
+    frame(dt) {
+      const spd = +$('.spd', s).value;
+      if (running) {
+        if (spd <= 2) {
+          if (!anim) anim = {r: A.construct(), p: 0};
+          anim.p += dt * A.n / (spd === 1 ? 4 : 1.4);
+          if (anim.p >= A.n) { A.update(anim.r); anim = null; }
+        } else {
+          if (anim) { A.update(anim.r); anim = null; }
+          const k = spd === 3 ? 1 : spd === 4 ? 3 : 8;
+          for (let i = 0; i < k; i++) A.iterate();
+        }
+      }
+      ctx.clearRect(0, 0, w, h);
+      if ($('.showph', s).checked) drawPher(ctx, A, 6);
+      if ($('.showbest', s).checked) drawTour(ctx, pts, A.best, PAL.coral, 2.5);
+      if (anim) {
+        ctx.fillStyle = PAL.text;
+        anim.r.tours.slice(0, 40).forEach(t => { const e = Math.floor(anim.p), f = anim.p - e, a = pts[t[e % A.n]], b = pts[t[(e + 1) % A.n]]; circle(ctx, lerp(a[0], b[0], f), lerp(a[1], b[1], f), 3.2); ctx.fill(); });
+      }
+      drawCities(ctx, pts, 5);
+      $('.it', s).textContent = A.it; $('.bl', s).textContent = isFinite(A.bestL) ? A.bestL.toFixed(0) : '—';
+      chart(ch, [{data: A.histIb, color: PAL.amber, width: 1.2, alpha: 0.6}, {data: A.hist, color: PAL.coral, width: 2.2}]);
+    }
+  };
+};
+
+SIM.vrp = s => {
+  const c = cvs($('.cv', s)), {ctx, w, h} = c, R = rng(21), dep = [w / 2, h / 2], CAP = 18;
+  const cl = randomCities(21, w, h, 40, R).filter(p => Math.hypot(p[0] - dep[0], p[1] - dep[1]) > 60).map(p => ({p, q: 1 + Math.floor(R() * 4), a: Math.atan2(p[1] - dep[1], p[0] - dep[0])}));
+  cl.sort((a, b) => a.a - b.a);
+  const routes = []; let curR = [], load = 0;
+  cl.forEach(x => { if (load + x.q > CAP) { routes.push(curR); curR = []; load = 0; } curR.push(x); load += x.q; });
+  if (curR.length) routes.push(curR);
+  const paths = routes.map(r => [dep, ...r.map(x => x.p), dep]);
+  const lens = paths.map(p => { const cum = [0]; for (let i = 1; i < p.length; i++) cum.push(cum[i - 1] + Math.hypot(p[i][0] - p[i - 1][0], p[i][1] - p[i - 1][1])); return cum; });
+  let t = 0;
+  const cols = () => [PAL.coral, PAL.amber, PAL.teal, PAL.violet, PAL.green];
+  return {
+    enter() { t = 0; },
+    frame(dt) {
+      t += dt; if (t > 9) t = 0; const prog = clamp(t / 6, 0, 1);
+      ctx.clearRect(0, 0, w, h);
+      paths.forEach((p, k) => {
+        const cum = lens[k], tot = cum[cum.length - 1], u = prog * tot, col = cols()[k % 5];
+        ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.lineJoin = 'round'; ctx.beginPath(); ctx.moveTo(p[0][0], p[0][1]);
+        let pos = p[0];
+        for (let i = 1; i < p.length; i++) { if (cum[i] <= u) { ctx.lineTo(p[i][0], p[i][1]); pos = p[i]; } else { const f = (u - cum[i - 1]) / (cum[i] - cum[i - 1]); pos = [lerp(p[i - 1][0], p[i][0], f), lerp(p[i - 1][1], p[i][1], f)]; ctx.lineTo(pos[0], pos[1]); break; } }
+        ctx.stroke();
+        if (prog < 1) { ctx.fillStyle = col; ctx.fillRect(pos[0] - 9, pos[1] - 6, 18, 12); }
+        const load = routes[k].reduce((a, x) => a + x.q, 0);
+        text(ctx, `Camión ${k + 1}: ${load}/${CAP}`, 16, 24 + k * 22, {size: 15, color: col, weight: 600});
+      });
+      cl.forEach(x => { ctx.fillStyle = PAL.surface2; ctx.strokeStyle = PAL.text; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.rect(x.p[0] - 11, x.p[1] - 11, 22, 22); ctx.fill(); ctx.stroke(); text(ctx, String(x.q), x.p[0], x.p[1] + 1, {align: 'center', base: 'middle', size: 13, font: 'mono'}); });
+      ctx.fillStyle = PAL.text; ctx.fillRect(dep[0] - 18, dep[1] - 18, 36, 36);
+      text(ctx, 'Almacén', dep[0], dep[1] + 36, {align: 'center', size: 15, weight: 600});
+      text(ctx, 'número = demanda del cliente', w - 14, h - 14, {align: 'right', size: 13, color: PAL.faint});
+    }
+  };
+};
+
+SIM.antnet = s => {
+  const c = cvs($('.cv', s)), {ctx, w, h} = c;
+  const P = [[60, 235], [210, 100], [210, 370], [370, 60], [380, 235], [370, 410], [530, 120], [540, 340], [670, 70], [740, 235]];
+  const S0 = 0, DST = 9, NAMES = {0: 'S', 9: 'D'};
+  const ALL = [[0, 1], [0, 2], [1, 3], [1, 4], [2, 4], [2, 5], [3, 6], [4, 6], [4, 7], [5, 7], [6, 9], [7, 9], [3, 8], [8, 9], [6, 8]];
+  let cut = new Set(), prob, best, ants = [], data = [], ta = 0, td = 0, lost = 0;
+  const ek = (a, b) => a < b ? a + '-' + b : b + '-' + a;
+  const nbrs = a => ALL.filter(([x, y]) => (x === a || y === a) && !cut.has(ek(x, y))).map(([x, y]) => x === a ? y : x);
+  const len = (a, b) => Math.hypot(P[a][0] - P[b][0], P[a][1] - P[b][1]);
+  function initTables() { prob = P.map((_, a) => { const o = {}; const nb = nbrs(a); nb.forEach(b => o[b] = 1 / nb.length); return o; }); best = P.map(() => Infinity); }
+  function fixTables() { P.forEach((_, a) => { const nb = nbrs(a), o = prob[a]; Object.keys(o).forEach(b => { if (!nb.includes(+b)) delete o[b]; }); nb.forEach(b => { if (!(b in o)) o[b] = 0.05; }); const S = Object.values(o).reduce((x, y) => x + y, 0); for (const b in o) o[b] /= S || 1; }); best = P.map(() => Infinity); }
+  function choose(a, visited, explore) {
+    const nb = nbrs(a).filter(b => !visited.has(b)); if (!nb.length) return -1;
+    if (Math.random() < explore) return nb[Math.random() * nb.length | 0];
+    let S = nb.reduce((x, b) => x + (prob[a][b] || 0), 0), r = Math.random() * S;
+    for (const b of nb) { r -= prob[a][b] || 0; if (r <= 0) return b; } return nb[nb.length - 1];
+  }
+  function learn(path, times) {
+    const total = times[times.length - 1];
+    for (let i = 0; i < path.length - 1; i++) {
+      const a = path[i], b = path[i + 1], T = total - times[i];
+      best[a] = Math.min(best[a] * 1.01, T);
+      const r = 0.3 * clamp(best[a] / T, 0, 1) ** 2, o = prob[a];
+      for (const x in o) o[x] = +x === b ? o[x] + r * (1 - o[x]) : o[x] - r * o[x];
+    }
+  }
+  function antTrip(start) { const path = [start], vis = new Set([start]), times = [0]; let a = start; while (a !== DST) { const b = choose(a, vis, 0.1); if (b < 0) return null; times.push(times[times.length - 1] + len(a, b) * (1 + 0.15 * Math.random())); path.push(b); vis.add(b); a = b; } return {path, times}; }
+  function train(k) { for (let i = 0; i < k; i++) { const r = antTrip(Math.random() * 9 | 0); if (r) learn(r.path, r.times); } }
+  function mainRoute() { const path = [S0], vis = new Set([S0]); let a = S0; while (a !== DST && path.length < 12) { const nb = nbrs(a).filter(b => !vis.has(b)); if (!nb.length) return path; const b = nb.reduce((x, y) => (prob[a][y] || 0) > (prob[a][x] || 0) ? y : x); path.push(b); vis.add(b); a = b; } return path; }
+  function connected(excl) { const seen = new Set([S0]), st = [S0]; while (st.length) { const a = st.pop(); ALL.forEach(([x, y]) => { const k = ek(x, y); if (cut.has(k) || k === excl) return; const o = x === a ? y : y === a ? x : -1; if (o >= 0 && !seen.has(o)) { seen.add(o); st.push(o); } }); } return seen.has(DST); }
+  initTables(); train(800);
+  $('.cut', s).onclick = () => {
+    const r = mainRoute(); const cands = []; for (let i = 0; i < r.length - 1; i++) cands.push(ek(r[i], r[i + 1]));
+    const pickE = cands.find((k, i) => i >= 1 && connected(k)) || cands.find(k => connected(k));
+    if (!pickE) { $('.cut', s).textContent = 'Ya no hay otra ruta'; return; }
+    cut.add(pickE); fixTables();
+    [ants, data].forEach(arr => arr.forEach(p => { if (ek(p.a, p.b) === pickE) p.dead = true; }));
+  };
+  $('.restore', s).onclick = () => { cut.clear(); fixTables(); $('.cut', s).textContent = 'Cortar enlace'; };
+  function spawn(isData) {
+    const start = isData ? S0 : (Math.random() * 9 | 0);
+    const vis = new Set([start]); const b = isData ? bestNext(start, vis) : choose(start, vis, 0.1); if (b < 0) return;
+    (isData ? data : ants).push({a: start, b, u: 0, vis, path: [start], times: [0], t: 0, dead: false});
+  }
+  function bestNext(a, vis) { const nb = nbrs(a).filter(b => !vis.has(b)); if (!nb.length) return -1; return nb.reduce((x, y) => (prob[a][y] || 0) > (prob[a][x] || 0) ? y : x); }
+  function move(arr, dt, isData) {
+    const SP = isData ? 210 : 320;
+    arr.forEach(p => {
+      if (p.dead) return;
+      p.u += SP * dt; p.t += dt; const L = len(p.a, p.b);
+      if (p.u >= L) {
+        p.u -= L; p.vis.add(p.b); p.path.push(p.b); p.times.push(p.times[p.times.length - 1] + L * (1 + 0.15 * Math.random()));
+        if (p.b === DST) { p.dead = true; p.arrived = true; if (!isData) learn(p.path, p.times); return; }
+        const nx = isData ? bestNext(p.b, p.vis) : choose(p.b, p.vis, 0.1);
+        if (nx < 0) { p.dead = true; if (isData) lost++; return; }
+        p.a = p.b; p.b = nx;
+      }
+    });
+    return arr.filter(p => !p.dead);
+  }
+  return {
+    frame(dt) {
+      ta += dt; td += dt;
+      while (ta > 0.07) { ta -= 0.07; spawn(false); }
+      while (td > 0.22) { td -= 0.22; spawn(true); }
+      ants = move(ants, dt, false); data = move(data, dt, true);
+      ctx.clearRect(0, 0, w, h);
+      const route = mainRoute(), onRoute = new Set(); for (let i = 0; i < route.length - 1; i++) onRoute.add(ek(route[i], route[i + 1]));
+      ALL.forEach(([a, b]) => {
+        const k = ek(a, b);
+        if (cut.has(k)) { ctx.setLineDash([6, 8]); ctx.strokeStyle = PAL.coral; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(P[a][0], P[a][1]); ctx.lineTo(P[b][0], P[b][1]); ctx.stroke(); ctx.setLineDash([]); const mx = (P[a][0] + P[b][0]) / 2, my = (P[a][1] + P[b][1]) / 2; text(ctx, '✕', mx, my, {align: 'center', base: 'middle', size: 24, color: PAL.coral, weight: 600}); return; }
+        const on = onRoute.has(k);
+        ctx.strokeStyle = on ? rgba(PAL.amber, 0.75) : PAL.line; ctx.lineWidth = on ? 9 : 3; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(P[a][0], P[a][1]); ctx.lineTo(P[b][0], P[b][1]); ctx.stroke();
+      });
+      nbrs(S0).forEach(b => { const x = lerp(P[S0][0], P[b][0], 0.42), y = lerp(P[S0][1], P[b][1], 0.42); ctx.fillStyle = PAL.surface; ctx.fillRect(x - 22, y - 11, 44, 22); text(ctx, (prob[S0][b] || 0).toFixed(2), x, y + 1, {align: 'center', base: 'middle', size: 13, font: 'mono', color: PAL.amber}); });
+      const dot = (p, col, r) => { const x = lerp(P[p.a][0], P[p.b][0], p.u / len(p.a, p.b)), y = lerp(P[p.a][1], P[p.b][1], p.u / len(p.a, p.b)); ctx.fillStyle = col; circle(ctx, x, y, r); ctx.fill(); };
+      ants.forEach(p => dot(p, PAL.text, 2.6)); data.forEach(p => dot(p, PAL.amber, 5));
+      P.forEach((p, i) => { const big = i in NAMES; ctx.fillStyle = big ? PAL.amber : PAL.surface2; ctx.strokeStyle = PAL.text; ctx.lineWidth = 2; circle(ctx, p[0], p[1], big ? 24 : 15); ctx.fill(); ctx.stroke(); if (big) text(ctx, NAMES[i], p[0], p[1] + 1, {align: 'center', base: 'middle', size: 19, weight: 600, color: '#1a1206'}); });
+      text(ctx, 'Probabilidades en la tabla de S', 14, h - 14, {size: 13, color: PAL.faint});
+    }
+  };
+};
+
+/* ---------- resaltado de Python ---------- */
+function highlightPy(pre) {
+  const KW = new Set(['def', 'return', 'for', 'in', 'if', 'else', 'while', 'not', 'None', 'and', 'or', 'import']);
+  const BI = new Set(['random', 'math', 'zip', 'range', 'len', 'sum']);
+  const esc = x => x.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const re = /(#.*$)|("[^"]*")|(\b\d+\.?\d*\b)|([A-Za-z_]\w*)/g;
+  pre.innerHTML = pre.textContent.split('\n').map((line, i) => {
+    let out = '', last = 0, m, prevDef = false; re.lastIndex = 0;
+    while ((m = re.exec(line))) {
+      out += esc(line.slice(last, m.index)); last = re.lastIndex; const tk = m[0];
+      if (m[1]) out += `<span class="tk-c">${esc(tk)}</span>`;
+      else if (m[2]) out += `<span class="tk-s">${esc(tk)}</span>`;
+      else if (m[3]) out += `<span class="tk-n">${tk}</span>`;
+      else if (KW.has(tk)) out += `<span class="tk-k">${tk}</span>`;
+      else if (prevDef) out += `<span class="tk-b">${tk}</span>`;
+      else if (BI.has(tk)) out += `<span class="tk-f">${tk}</span>`;
+      else out += tk;
+      prevDef = tk === 'def';
+    }
+    out += esc(line.slice(last));
+    return `<span class="ln" data-n="${i + 1}">${out || ' '}</span>`;
+  }).join('');
+}
+$$('pre.code.py').forEach(highlightPy);
+$$('table.t th').forEach(th => { if (/[α-ωΑ-Ω]/.test(th.textContent)) th.classList.add('g'); });
+$$('pre.code').forEach(p => p.innerHTML = p.innerHTML.replace(/\n/g, ''));
+
+/* ---------- navegación ---------- */
+$$('.team').forEach(t => t.innerHTML = EQUIPO.map(n => `<div>${n}</div>`).join(''));
+
+slides.forEach(s => {
+  let seq = 0;
+  $$('.step', s).forEach(e => { if (!e.dataset.at) e.dataset.at = ++seq; else seq = Math.max(seq, +e.dataset.at); });
+  s._total = Math.max(seq, +(s.dataset.steps || 0)); s._k = 0;
+});
+function simsOf(s) { if (!s.dataset.sim) return []; if (!s._sims) s._sims = s.dataset.sim.split(' ').map(n => SIM[n](s)); return s._sims; }
+function inRange(n, r) { return r.split(',').some(p => { const [a, b] = p.split('-').map(Number); return n >= a && n <= (b || a); }); }
+function applyStep(s) {
+  $$('.step', s).forEach(e => e.classList.toggle('on', s._k >= +e.dataset.at));
+  $$('pre.code[data-hl]', s).forEach(pre => {
+    const r = s._k > 0 ? pre.dataset.hl.split('|')[s._k - 1] : null;
+    pre.classList.toggle('focus', !!r);
+    $$('.ln', pre).forEach((ln, i) => ln.classList.toggle('hl', r ? inRange(i + 1, r) : false));
+  });
+  simsOf(s).forEach(x => x.step && x.step(s._k));
+}
+function chrome() {
+  const s = slides[cur], p = +s.dataset.part;
+  $('#foot .where').innerHTML = p ? `ACO · Parte ${p}: ${PARTES[p]}` : 'Ant Colony Optimization';
+  $('#foot .pg').textContent = `${cur + 1} / ${slides.length}`;
+  $('#bar').style.width = (100 * (cur + 1) / slides.length) + '%';
+  const nt = $('aside.notes', s);
+  $('#notes h4').textContent = `Notas · diapositiva ${cur + 1}`;
+  $('#notes .body').innerHTML = nt ? nt.innerHTML : '<span class="muted">Sin notas.</span>';
+  try { history.replaceState(null, '', '#' + (cur + 1)); } catch (e) {}
+}
+function go(i, back = false) {
+  i = clamp(i, 0, slides.length - 1);
+  if (slides[cur] && i !== cur) simsOf(slides[cur]).forEach(x => x.leave && x.leave());
+  slides.forEach((s, j) => { s.classList.toggle('active', j === i); s.classList.toggle('past', j < i); });
+  cur = i; const s = slides[i]; s._k = back ? s._total : 0;
+  applyStep(s); simsOf(s).forEach(x => x.enter && x.enter()); chrome();
+}
+function next() { const s = slides[cur]; if (s._k < s._total) { s._k++; applyStep(s); } else if (cur < slides.length - 1) go(cur + 1); }
+function prev() { const s = slides[cur]; if (s._k > 0) { s._k--; applyStep(s); } else if (cur > 0) go(cur - 1, true); }
+
+function fit() { const k = Math.min(innerWidth / 1600, innerHeight / 900); stage.style.transform = `translate(-50%,-50%) scale(${k})`; }
+addEventListener('resize', fit);
+function setTheme(t) { document.documentElement.dataset.theme = t; try { localStorage.setItem('aco-theme', t); } catch (e) {} readPal(); }
+addEventListener('keydown', e => {
+  const tg = e.target.tagName;
+  if (tg === 'INPUT' || tg === 'SELECT' || tg === 'TEXTAREA') { if (e.key === 'Escape') e.target.blur(); else return; }
+  const k = e.key;
+  if (['ArrowRight', 'ArrowDown', 'PageDown', ' ', 'Enter'].includes(k)) { e.preventDefault(); next(); }
+  else if (['ArrowLeft', 'ArrowUp', 'PageUp', 'Backspace'].includes(k)) { e.preventDefault(); prev(); }
+  else if (k === 'Home') go(0); else if (k === 'End') go(slides.length - 1);
+  else if (k === 'n' || k === 'N') $('#notes').classList.toggle('open');
+  else if (k === 't' || k === 'T') setTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light');
+  else if (k === 'f' || k === 'F') { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(() => {}); }
+});
+document.addEventListener('click', e => { const b = e.target.closest('button'); if (b) b.blur(); });
+document.addEventListener('change', e => { if (e.target.matches('input,select')) e.target.blur(); });
+$('#nav .pv').onclick = prev; $('#nav .nx').onclick = next;
+
+try { const t = localStorage.getItem('aco-theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+readPal(); fit();
+go(Math.max(0, (parseInt(location.hash.slice(1)) || 1) - 1));
+setTimeout(() => $('#help').style.opacity = 0, 6000);
+let last = performance.now();
+(function loop(t) {
+  const dt = Math.min(0.05, (t - last) / 1000); last = t;
+  const s = slides[cur]; if (s._sims) s._sims.forEach(x => { try { x.frame && x.frame(dt, t / 1000); } catch (err) { console.error(err); } });
+  requestAnimationFrame(loop);
+})(performance.now());
+</script>
+</body>
+</html>
