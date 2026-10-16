@@ -317,13 +317,13 @@ svg text{font-family:var(--body)}
     <div>
       <pre class="code" style="font-size:21px"><span class="ln pl" data-p="-1" data-n="1">inicializar parámetros y feromona τ</span><span class="ln pl" data-p="3" data-n="2"><span class="tk-k">mientras</span> no se cumpla el criterio de paro:</span><span class="ln pl" data-p="0" data-n="3">    ConstruirSoluciones()</span><span class="ln pl" data-p="1" data-n="4">    AplicarBúsquedaLocal()   <span class="tk-c"># opcional</span></span><span class="ln pl" data-p="2" data-n="5">    ActualizarFeromona()</span><span class="ln pl" data-p="3" data-n="6"><span class="tk-k">fin</span></span></pre>
       <ul class="small" style="margin-top:28px">
-        <li>El criterio de paro suele ser un número de iteraciones o un tiempo límite.</li>
+        <li>El criterio de paro suele ser un número de iteraciones, un tiempo límite o el <b>estancamiento</b>: todas las hormigas repiten la misma ruta.</li>
         <li>Los algoritmos ACO más competitivos casi siempre <b>sí</b> incluyen búsqueda local.</li>
         <li>Valores típicos: <b>m = n</b>, <b>α = 1</b>, <b>β = 2 a 5</b>, <b>ρ = 0.5</b> (Dorigo y Stützle, 2004).</li>
       </ul>
     </div>
   </div>
-  <p class="cite">Algoritmo 1 de Dorigo, Birattari y Stützle (2006).</p>
+  <p class="cite">Figura 3.3 de Dorigo y Stützle (2004); criterios de paro en la sección 3.8.2.</p>
   <aside class="notes">Este esqueleto es igual para todas las variantes de ACO. Lo que cambia entre variantes es cómo eligen las hormigas y cómo se actualiza la feromona. En lo que sigue vamos a ver esos dos bloques con fórmulas.</aside>
 </section>
 
@@ -340,8 +340,8 @@ svg text{font-family:var(--body)}
     <div class="card step" data-at="3" style="border-top:4px solid var(--violet)"><h3 class="violet">Σ (denominador)</h3><p class="small" style="margin:0">Suma de todas las opciones. Sirve para que las probabilidades <b>sumen 1</b>.</p></div>
     <div class="card step" data-at="4" style="border-top:4px solid var(--coral)"><h3 class="coral">N<sub>i</sub><sup>k</sup></h3><p class="small" style="margin:0">Ciudades que la hormiga <i>k</i> <b>no ha visitado</b>. Así la ruta siempre es válida.</p></div>
   </div>
-  <p class="cite">Ecuaciones 4 y 5 de Dorigo, Birattari y Stützle (2006); propuesta original en Dorigo, Maniezzo y Colorni (1996).</p>
-  <aside class="notes">Esta es la fórmula más importante. Arriba se multiplica la feromona por la heurística de la arista. Abajo se suma lo mismo para todas las ciudades posibles, y así las probabilidades suman uno. Si la ciudad ya se visitó, su probabilidad es cero. Comparen con el modelo de Goss: la idea es la misma, más feromona significa más probabilidad.</aside>
+  <p class="cite">Ecuación 3.2 de Dorigo y Stützle (2004); propuesta original en Dorigo, Maniezzo y Colorni (1996), ecuación 4.</p>
+  <aside class="notes">Esta es la fórmula más importante. Arriba se multiplica la feromona por la heurística de la arista. Abajo se suma lo mismo para todas las ciudades posibles, y así las probabilidades suman uno. Si la ciudad ya se visitó, su probabilidad es cero. Es la misma idea que vimos en el doble puente: más feromona significa más probabilidad.</aside>
 </section>
 
 <!-- 19. Ruleta -->
@@ -359,11 +359,11 @@ svg text{font-family:var(--body)}
         <div class="ctrl"><label>α (feromona)</label><input type="range" class="al" min="0" max="5" step="0.5" value="1"><output class="o-al"></output></div>
         <div class="ctrl"><label>β (distancia)</label><input type="range" class="be" min="0" max="5" step="0.5" value="2"><output class="o-be"></output></div>
         <div class="btns" style="margin-top:10px;justify-content:center"><button class="b pri spin">Girar</button><button class="b spin100">Girar 200 veces</button><button class="b rst">Reiniciar conteo</button></div>
-        <p class="tiny muted" style="margin:14px 0 0;text-align:center"><b>α = 0</b>: solo cuenta la distancia (voraz) · <b>β = 0</b>: solo cuenta la feromona (se estanca)</p>
+        <p class="tiny muted" style="margin:14px 0 0;text-align:center"><b>α = 0</b>: solo cuenta la distancia (voraz) · <b>β = 0</b>: solo cuenta la feromona (malos resultados; con α &gt; 1 se estanca)</p>
       </div>
     </div>
   </div>
-  <aside class="notes">La hormiga está en i. La ciudad gris ya la visitó, así que no participa. El grosor ámbar es la feromona y el número es la distancia. Cada rebanada de la ruleta mide lo mismo que su probabilidad. Girando 200 veces, el conteo se acerca a las probabilidades de la tabla. Muevan α a 0 para que solo cuente la distancia, o β a 0 para que solo cuente la feromona.</aside>
+  <aside class="notes">La hormiga está en i. La ciudad gris ya la visitó, así que no participa. El grosor ámbar es la feromona y el número es la distancia. Cada rebanada de la ruleta mide lo mismo que su probabilidad. Girando 200 veces, el conteo se acerca a las probabilidades de la tabla. Muevan α a 0 para que solo cuente la distancia, o β a 0 para que solo cuente la feromona. Con β en 0 los resultados son malos, y si además α es mayor que 1 todas las hormigas terminan repitiendo la misma ruta: eso es el estancamiento.</aside>
 </section>
 
 <!-- 21. Actualización de feromona -->
@@ -377,9 +377,9 @@ svg text{font-family:var(--body)}
         <math display="block" style="font-size:.8em"><mi mathvariant="normal">Δ</mi><msubsup><mi>τ</mi><mrow><mi>i</mi><mi>j</mi></mrow><mi>k</mi></msubsup><mo>=</mo><mrow><mo>{</mo><mtable columnalign="left"><mtr><mtd><mi>Q</mi><mo>/</mo><msub><mi>L</mi><mi>k</mi></msub></mtd><mtd><mtext>si la hormiga</mtext><mspace width="0.3em"/><mi>k</mi><mspace width="0.3em"/><mtext>usó</mtext><mspace width="0.3em"/><mo>(</mo><mi>i</mi><mo>,</mo><mi>j</mi><mo>)</mo></mtd></mtr><mtr><mtd><mn>0</mn></mtd><mtd><mtext>si no</mtext></mtd></mtr></mtable></mrow></math>
       </div>
       <ul class="small" style="margin-top:22px">
-        <li><b>ρ</b> ∈ (0, 1]: tasa de evaporación. Hace que la colonia olvide rutas viejas y no se quede con la primera que encontró.</li>
+        <li><b>ρ</b> ∈ (0, 1]: tasa de evaporación. La colonia olvida rutas viejas: si nadie usa una arista, su feromona baja de forma exponencial.</li>
         <li><b>L<sub>k</sub></b>: longitud de la ruta de la hormiga <i>k</i>. Ruta más corta ⇒ deposita <b>más</b>.</li>
-        <li><b>Q</b>: constante (normalmente 1).</li>
+        <li><b>Q</b>: constante; casi no influye en el resultado. En el código vale 1; aquí vale 10 para que el depósito se lea.</li>
       </ul>
       <div class="upd-msg card" style="margin-top:16px;padding:16px 20px;font-size:20px;min-height:84px"></div>
     </div>
@@ -388,8 +388,8 @@ svg text{font-family:var(--body)}
       <div class="legend upd-leg" style="margin-top:12px"></div>
     </div>
   </div>
-  <p class="cite">Ecuaciones 2 y 3 de Dorigo, Birattari y Stützle (2006).</p>
-  <aside class="notes">Avancen con la flecha: primero todas las aristas pierden feromona por la evaporación, todas en la misma proporción. Luego cada hormiga deposita en las aristas que usó. La hormiga con la ruta más corta deposita más, por eso sus aristas quedan más gruesas. Las aristas que nadie usó solo se evaporan.</aside>
+  <p class="cite">Ecuaciones 3.3 a 3.5 de Dorigo y Stützle (2004); sobre Q, Dorigo, Maniezzo y Colorni (1996), sección IV.</p>
+  <aside class="notes">Avancen con la flecha: primero todas las aristas pierden feromona por la evaporación, todas en la misma proporción. Luego cada hormiga deposita en las aristas que usó. La hormiga con la ruta más corta deposita más, por eso sus aristas quedan más gruesas. Las aristas que nadie usó solo se evaporan. Ojo si leen el artículo original de 1996: ahí ρ es la parte de la feromona que se queda, τ ← ρ·τ + Δτ. Aquí usamos la notación del libro de Dorigo y Stützle, donde ρ es la parte que se evapora.</aside>
 </section>
 
 <!-- 27. Código 1 -->
@@ -420,7 +420,7 @@ def construir_ruta(tau, eta, alpha, beta):
         actual = siguiente
     return ruta</pre>
     <div class="small">
-      <p class="step" data-at="1"><b class="amber">ruleta</b>: suma los pesos y avanza hasta pasar el número aleatorio. Es la columna de "acumulado" del ejemplo.</p>
+      <p class="step" data-at="1"><b class="amber">ruleta</b>: es la ruleta de la diapositiva 11 en código: suma los pesos y avanza hasta pasar el número aleatorio.</p>
       <p class="step" data-at="2">Ciudad inicial al azar y <b>memoria</b> de visitadas (un conjunto).</p>
       <p class="step" data-at="3">Las candidatas son el conjunto <b class="coral">N<sub>i</sub><sup>k</sup></b>.</p>
       <p class="step" data-at="4">El peso es el <b>numerador</b> de la regla: τ<sup>α</sup>·η<sup>β</sup>. No hace falta dividir: la ruleta ya normaliza.</p>
@@ -472,7 +472,7 @@ def ant_system(dist, m, alpha, beta, rho, Q, iteraciones):
       <p class="step tag" data-at="5" style="margin-top:6px">Costo por iteración: O(m·n²)</p>
     </div>
   </div>
-  <aside class="notes">El detalle de cada función está en la guía de estudio (Guia_codigo_ACO). Con esto ya está el algoritmo completo. Corriendo el archivo con 30 ciudades aleatorias se obtiene la mejor ruta y una gráfica de cómo baja la longitud. El costo es m hormigas por n pasos por n candidatas en cada paso.</aside>
+  <aside class="notes">El detalle de cada función está en la guía de estudio (Guia_codigo_ACO). Con esto ya está el algoritmo completo. Corriendo el archivo con 30 ciudades aleatorias se obtiene la mejor ruta y una gráfica de cómo baja la longitud. El costo es m hormigas por n pasos por n candidatas en cada paso. ¿Por qué τ₀ = m / C<sup>nn</sup>? Es un poco más que lo que depositan las hormigas en una iteración. Si τ₀ es muy bajo, las primeras rutas sesgan la búsqueda; si es muy alto, se pierden iteraciones esperando a que la evaporación lo baje (Dorigo y Stützle, 2004, p. 70).</aside>
 </section>
 
 <!-- ============ PARTE 3 ============ -->
@@ -501,13 +501,13 @@ def ant_system(dist, m, alpha, beta, rho, Q, iteraciones):
     </div>
     <div class="panel" style="gap:11px">
       <div class="btns"><select class="b variant"><option value="AS">Ant System</option><option value="MMAS">MAX–MIN AS</option><option value="ACS">Ant Colony System</option></select><button class="b pri play">Iniciar</button><button class="b reset">Reiniciar</button></div>
-      <div class="ctrl"><label>Ciudades</label><input type="range" class="n" min="8" max="70" value="30"><output class="o-n"></output></div>
-      <div class="ctrl"><label>Hormigas m</label><input type="range" class="m" min="1" max="60" value="20"><output class="o-m"></output></div>
-      <div class="ctrl"><label>α</label><input type="range" class="al" min="0" max="5" step="0.5" value="1"><output class="o-al"></output></div>
-      <div class="ctrl"><label>β</label><input type="range" class="be" min="0" max="6" step="0.5" value="3"><output class="o-be"></output></div>
-      <div class="ctrl"><label>ρ</label><input type="range" class="rho" min="0.01" max="0.9" step="0.01" value="0.5"><output class="o-rho"></output></div>
-      <div class="ctrl q0row"><label>q₀ (ACS)</label><input type="range" class="q0" min="0" max="1" step="0.05" value="0.9"><output class="o-q0"></output></div>
-      <div class="ctrl" style="grid-template-columns:120px 1fr 110px"><label>Velocidad</label><input type="range" class="spd" min="1" max="5" step="1" value="2"><output class="o-spd" style="white-space:nowrap"></output></div>
+      <div class="ctrl" style="grid-template-columns:190px 1fr 64px"><label>Ciudades</label><input type="range" class="n" min="8" max="70" value="30"><output class="o-n"></output></div>
+      <div class="ctrl" style="grid-template-columns:190px 1fr 64px"><label>Hormigas m</label><input type="range" class="m" min="1" max="60" value="20"><output class="o-m"></output></div>
+      <div class="ctrl" style="grid-template-columns:190px 1fr 64px"><label>α (feromona)</label><input type="range" class="al" min="0" max="5" step="0.5" value="1"><output class="o-al"></output></div>
+      <div class="ctrl" style="grid-template-columns:190px 1fr 64px"><label>β (distancia)</label><input type="range" class="be" min="0" max="6" step="0.5" value="3"><output class="o-be"></output></div>
+      <div class="ctrl" style="grid-template-columns:190px 1fr 64px"><label>ρ (evaporación)</label><input type="range" class="rho" min="0.01" max="0.9" step="0.01" value="0.5"><output class="o-rho"></output></div>
+      <div class="ctrl q0row" style="grid-template-columns:190px 1fr 64px"><label>q₀ (elegir la mejor)</label><input type="range" class="q0" min="0" max="1" step="0.05" value="0.9"><output class="o-q0"></output></div>
+      <div class="ctrl" style="grid-template-columns:190px 1fr 110px"><label>Velocidad</label><input type="range" class="spd" min="1" max="5" step="1" value="2"><output class="o-spd" style="white-space:nowrap"></output></div>
       <div class="btns"><button class="b newc">Nuevas ciudades</button><label class="small muted" style="display:flex;align-items:center;gap:6px"><input type="checkbox" class="showbest" checked> mejor ruta</label><label class="small muted" style="display:flex;align-items:center;gap:6px"><input type="checkbox" class="showph" checked> feromona</label></div>
       <div class="stat">Iteración <b class="it">0</b> · Mejor L <b class="bl">—</b></div>
       <div class="frame"><canvas class="ch" data-w="440" data-h="150"></canvas></div>
